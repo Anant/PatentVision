@@ -40,8 +40,6 @@ export default function Home() {
       setSummary(data.summary || "");
       setImageUrl(data.imageUrl || "");
       setAudioData(data.audioData || "");
-
-      // By default, hide extracted text until user toggles
       setShowExtractedText(false);
     } catch (err) {
       console.error("Error uploading/parsing PDF:", err);
@@ -54,22 +52,28 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-900 text-gray-100 p-8">
       <div className="max-w-5xl mx-auto">
-        {/* Title */}
         <h1 className="text-2xl font-bold mb-6">Patent PDF Uploader PoC</h1>
 
-        {/* File Upload & Button */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-          {/* Custom styled "Choose File" */}
-          <label className="relative cursor-pointer rounded bg-gray-700 px-4 py-2 hover:bg-gray-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500">
-            <span className="text-sm font-medium">Choose PDF</span>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileChange}
-              className="sr-only"
-            />
-          </label>
+          {/* Choose File (PDF) */}
+          <div>
+            <label className="relative cursor-pointer rounded bg-gray-700 px-4 py-2 hover:bg-gray-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500">
+              <span className="text-sm font-medium">Choose PDF</span>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleFileChange}
+                className="sr-only"
+              />
+            </label>
+            {pdfFile && (
+              <p className="mt-2 text-sm text-gray-300">
+                Selected file: <span className="font-semibold">{pdfFile.name}</span>
+              </p>
+            )}
+          </div>
 
+          {/* Upload & Process Button */}
           <button
             onClick={handleUploadAndProcess}
             disabled={isLoading}
