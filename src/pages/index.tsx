@@ -4,6 +4,13 @@ export default function Home() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState("");
   const [summary, setSummary] = useState("");
+  const [strucresponse, setStrucresponse] = useState<{
+    name: string;
+    date: string;
+    owner: string;
+    viabilityScore: number;
+    additionalInfo?: string;
+  } | null>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [audioData, setAudioData] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +47,7 @@ export default function Home() {
       setSummary(data.summary || "");
       setImageUrl(data.imageUrl || "");
       setAudioData(data.audioData || "");
+      setStrucresponse(data.strucresponse || null);
       setShowExtractedText(false);
     } catch (err) {
       console.error("Error uploading/parsing PDF:", err);
@@ -119,6 +127,32 @@ export default function Home() {
                 />
               </div>
             )}
+
+            {strucresponse && (
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold mb-2">Patent Details</h2>
+                <div className="border border-gray-700 bg-gray-800 p-4 rounded">
+                  <p>
+                    <span className="font-semibold">Name:</span> {strucresponse.name}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Date:</span> {strucresponse.date}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Owner:</span> {strucresponse.owner}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Viability Score:</span> {strucresponse.viabilityScore}/10
+                  </p>
+                  {strucresponse.additionalInfo && (
+                    <p>
+                      <span className="font-semibold">Additional Info:</span> {strucresponse.additionalInfo}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Extracted Text Panel */}

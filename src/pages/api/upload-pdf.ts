@@ -112,12 +112,67 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Error generating audio:", error);
     }
 
+    // 4. Define the JSON Schema (Removed "format" from "date")
+    const schema = {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "Name of the project, product, or technology",
+        },
+        date: {
+          type: "string",
+          description: "Date of assessment or evaluation",
+        },
+        owner: {
+          type: "string",
+          description: "Individual or organization owning the project",
+        },
+        viabilityScore: {
+          type: "number",
+          description: "10-factor viability score for market/technical potential (0-10)",
+        },
+      },
+      required: ["name", "date", "owner", "viabilityScore"],
+      additionalProperties: false, // Prevents additional unspecified properties
+    };
+
+    // 7. Structured Response
+    let strucresponse = null;
+    try {
+      const strucresponseAI = await openai.beta.chat.completions.parse({
+        model: "gpt-4o",
+        messages: [
+          { 
+            role: "system", 
+            content: "You are an expert at structured data extraction. You will be given a summary and should convert it into the given structure." 
+          },
+          { 
+            role: "user", 
+            content: summary 
+          },
+        ],
+        response_format: { 
+          type: "json_schema", 
+          json_schema: {
+            "strict": true, 
+            "name": "PatentSummary",
+            "schema": schema 
+          }
+        }
+      });
+      strucresponse = strucresponseAI?.choices[0]?.message?.parsed;
+    } catch (error) {
+      console.error("Error generating structured response:", error);
+    }
+
     // Return everything to the client
     return res.status(200).json({
       extractedText,
       summary,
       imageUrl,
       audioData: audioDataBase64,
+      strucresponse:strucresponse
     });
   } catch (error) {
     console.error("Error in upload-pdf route:", error);
