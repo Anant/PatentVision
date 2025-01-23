@@ -1,6 +1,6 @@
 # Patent Vision PoC
 
-Patent Vision is a Next.js application designed to streamline the process of analyzing patents by extracting meaningful and readable content, generating illustrative images, and producing audio summaries. Leveraging the power of OpenAI's GPT-4 for text summarization, DALL·E 3 for image generation, and advanced text-to-speech technologies, Patent Vision transforms complex patent documents into accessible and engaging formats.
+Patent Vision  is a Next.js application designed to streamline the process of analyzing patents by extracting meaningful and readable content, generating illustrative images, and producing audio summaries. Leveraging the power of OpenAI's GPT-4 for text summarization, DALL·E 3 for image generation, and advanced text-to-speech technologies, Patent Vision transforms complex patent documents into accessible and engaging formats.
 
 ## Table of Contents
 
