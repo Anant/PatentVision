@@ -31,7 +31,7 @@ Patent Vision is a Next.js application designed to streamline the process of ana
 
 ## Demo
 
-*(Include a link to a live demo if available)*
+*Coming Soon*
 
 ## Technologies Used
 
