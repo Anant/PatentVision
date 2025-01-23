@@ -52,7 +52,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-900 text-gray-100 p-8">
       <div className="max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Patent PDF Uploader PoC</h1>
+        <h1 className="text-2xl font-bold mb-6">Patent Vision PoC</h1>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
           {/* Choose File (PDF) */}

@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let audioDataBase64 = "";
     try {
       const audioResponse = await openai.chat.completions.create({
-        model: "gpt-4o-audio-preview", // might require special account access
+        model: "gpt-4o-audio-preview",
         modalities: ["text", "audio"],
         audio: { voice: "alloy", format: "wav" },
         messages: [
