@@ -7,7 +7,6 @@ import fs from "fs";
 import pdfParse from "pdf-parse";
 import OpenAI from "openai";
 
-// Tell Next.js not to parse the request body (we'll do it with formidable)
 export const config = {
   api: {
     bodyParser: false,
@@ -15,7 +14,7 @@ export const config = {
 };
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // ensure this is in .env.local
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -24,12 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // 1. Parse the incoming form data with formidable
+    // 1. Parse the form data
     const { fields, files } = await new Promise<{
       fields: formidable.Fields;
       files: formidable.Files;
     }>((resolve, reject) => {
-      // Limit size to ~10 MB
       const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
       //@ts-ignore
       form.parse(req, (err, fields, files) => {
@@ -38,48 +36,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     });
 
-    // 2. Check for our file => "file"
+    // Extract persona & question from fields
+    const persona = fields.persona || "";
+    const userQuestion = fields.question || "";
+
+    // 2. Check for "file"
     const uploadedFile = files.file;
     if (!uploadedFile) {
       return res.status(400).json({ error: "No file uploaded" });
     }
-
-    // If "file" can be an array (multiple files), handle that:
     const fileObj = Array.isArray(uploadedFile) ? uploadedFile[0] : uploadedFile;
     const filePath = fileObj.filepath;
 
-    // 3. Read the file as a buffer and parse the PDF
+    // 3. Parse PDF
     const pdfBuffer = fs.readFileSync(filePath);
     const pdfData = await pdfParse(pdfBuffer);
     const extractedText = pdfData.text?.trim() || "";
-
     if (!extractedText) {
       return res.status(400).json({ error: "Failed to extract text from PDF." });
     }
 
-    // 4. Summarize the text using GPT-4
+    // 4. Summarize with GPT-4, including persona and user question
     const chatResponse = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a helpful AI that summarizes patent text.",
+          content: `You are a helpful AI assisting from the perspective of a "${persona}" persona.`
         },
         {
           role: "user",
-          content: `Summarize the following patent text in a concise way:\n\n${extractedText}`,
-        },
+          content: `
+            The user asked: "${userQuestion}"
+            Summarize the following patent text in a concise way, from a(n) ${persona} viewpoint:
+
+            ${extractedText}
+
+            Make clear remarks about what persona this is ment for and address the users question as well separatly
+          `
+        }
       ],
     });
 
     const summary = chatResponse.choices[0]?.message?.content || "";
 
-    // 5. Generate an image with DALL·E 3
+    // 5. Generate DALL·E 3 image
     let imageUrl = "";
     try {
       const imageResponse = await openai.images.generate({
         model: "dall-e-3",
-        prompt: `Generate an image representing the following concept: ${summary}`,
+        prompt: `Generate an image representing this concept: ${summary} (persona: ${persona}).`,
         n: 1,
         size: "1024x1024",
       });
@@ -88,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Error generating image:", error);
     }
 
-    // 6. (Optional) Generate audio
+    // 6. Generate audio
     let audioDataBase64 = "";
     try {
       const audioResponse = await openai.chat.completions.create({
@@ -98,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         messages: [
           {
             role: "system",
-            content: "You are a helpful AI that produces spoken patent summaries.",
+            content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective.`,
           },
           {
             role: "user",
@@ -108,74 +114,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         store: true,
       });
       audioDataBase64 = audioResponse.choices[0]?.message?.audio?.data || "";
-    } catch (error) {
-      console.error("Error generating audio:", error);
+    } catch (err) {
+      console.error("Error generating audio:", err);
     }
 
-    // 4. Define the JSON Schema (Removed "format" from "date")
-    const schema = {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description: "Name of the project, product, or technology",
-        },
-        date: {
-          type: "string",
-          description: "Date of assessment or evaluation",
-        },
-        owner: {
-          type: "string",
-          description: "Individual or organization owning the project",
-        },
-        viabilityScore: {
-          type: "number",
-          description: "10-factor viability score for market/technical potential (0-10)",
-        },
-      },
-      required: ["name", "date", "owner", "viabilityScore"],
-      additionalProperties: false, // Prevents additional unspecified properties
-    };
-
-    // 7. Structured Response
+    // 7. (Optional) Structured JSON extraction (like before)
+    // Here you'd incorporate persona or question if you like. Example:
     let strucresponse = null;
     try {
+      const schema = {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          date: { type: "string" },
+          owner: { type: "string" },
+          viabilityScore: { type: "number" },
+        },
+        required: ["name", "date", "owner", "viabilityScore"],
+        additionalProperties: false,
+      };
+
       const strucresponseAI = await openai.beta.chat.completions.parse({
         model: "gpt-4o",
         messages: [
-          { 
-            role: "system", 
-            content: "You are an expert at structured data extraction. You will be given a summary and should convert it into the given structure." 
+          {
+            role: "system",
+            content: `You are an expert at structured data extraction. The user is a ${persona}. 
+              You will be given a summary and should convert it into the schema.`
           },
-          { 
-            role: "user", 
-            content: summary 
+          {
+            role: "user",
+            content: summary
           },
         ],
-        response_format: { 
-          type: "json_schema", 
+        response_format: {
+          type: "json_schema",
           json_schema: {
-            "strict": true, 
-            "name": "PatentSummary",
-            "schema": schema 
-          }
-        }
+            strict: true,
+            name: "PatentSummary",
+            schema,
+          },
+        },
       });
       strucresponse = strucresponseAI?.choices[0]?.message?.parsed;
     } catch (error) {
       console.error("Error generating structured response:", error);
     }
 
-    // Return everything to the client
+    // Return results
     return res.status(200).json({
       extractedText,
       summary,
       imageUrl,
       audioData: audioDataBase64,
-      strucresponse:strucresponse
+      strucresponse,
     });
-  } catch (error) {
-    console.error("Error in upload-pdf route:", error);
+  } catch (err) {
+    console.error("Error in upload-pdf route:", err);
     return res.status(500).json({ error: "Something went wrong." });
   }
 }

@@ -39,24 +39,27 @@ export default function Home() {
       alert("Please select or attach a PDF file first.");
       return;
     }
-
+  
     setIsLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", pdfFile);
-      // formData.append("userPrompt", message);
-
+  
+      // Pass the user’s typed question and the currently selected persona
+      formData.append("question", message);
+      formData.append("persona", selectedPersona);
+  
       const res = await fetch("/api/upload-pdf", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
-
+  
       if (!res.ok) {
         alert(data.error || "Error processing PDF");
         return;
       }
-
+  
       // Update state with results
       setExtractedText(data.extractedText || "");
       setSummary(data.summary || "");
@@ -97,11 +100,11 @@ export default function Home() {
         {/* 1. PatentSummary */}
         {summary && <PatentSummary summary={summary} />}
 
+        {/* 3. PatentAudio */}        
+        {audioData && <PatentAudio audioData={audioData} />}
+
         {/* 2. PatentImage */}
         {imageUrl && <PatentImage imageUrl={imageUrl} />}
-
-        {/* 3. PatentAudio */}
-        {audioData && <PatentAudio audioData={audioData} />}
 
         {/* 4. PatentStructuredDetails */}
         {strucresponse && <PatentStructuredDetails details={strucresponse} />}
