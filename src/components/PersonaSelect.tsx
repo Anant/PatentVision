@@ -1,4 +1,3 @@
-// components/PersonaSelect.tsx
 import React, { JSX, useState } from "react";
 import { Card } from "./ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
@@ -32,8 +31,7 @@ interface PersonaSelectProps {
 export function PersonaSelect({ selectedPersona, setSelectedPersona }: PersonaSelectProps) {
   const [customPersona, setCustomPersona] = useState("");
 
-  // Here’s your list of icons and titles
-  const personas: PersonaItem[] = [
+  const [personas, setPersonas] = useState<PersonaItem[]>([
     { icon: <Search className="h-6 w-6" />, title: "Quick Overview" },
     { icon: <Lightbulb className="h-6 w-6" />, title: "Inventor's View" },
     { icon: <Users className="h-6 w-6" />, title: "Startup / Angel Pitch" },
@@ -44,69 +42,91 @@ export function PersonaSelect({ selectedPersona, setSelectedPersona }: PersonaSe
     { icon: <Shield className="h-6 w-6" />, title: "Patent Defense" },
     { icon: <ChartBar className="h-6 w-6" />, title: "Market Impact" },
     { icon: <Gavel className="h-6 w-6" />, title: "Litigation Risk" },
-  ];
+  ]);
 
   function handleSelectPersona(title: string) {
     setSelectedPersona(title);
   }
 
-  return (
-    <div className="grid gap-6">
-      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-4">
-        {personas.map((persona) => (
-          <Card
-            key={persona.title}
-            className={`aspect-square p-4 cursor-pointer transition-colors hover:bg-accent ${
-              selectedPersona === persona.title ? "border border-primary" : ""
-            }`}
-            onClick={() => handleSelectPersona(persona.title)}
-          >
-            <div className="flex flex-col items-center justify-center h-full text-center gap-2">
-              {persona.icon}
-              <h3 className="font-semibold text-xs">{persona.title}</h3>
-            </div>
-          </Card>
-        ))}
+  function handleAddCustomPersona() {
+    if (!customPersona.trim()) return;
+    setPersonas((prev) => [
+      ...prev,
+      { title: customPersona.trim(), icon: <Users className="h-6 w-6" /> },
+    ]);
+    setSelectedPersona(customPersona.trim());
+    setCustomPersona("");
+  }
 
-        {/* "More" card for custom persona entry */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Card className="aspect-square p-4 cursor-pointer transition-colors hover:bg-accent">
-              <div className="flex flex-col items-center justify-center h-full text-center gap-2">
-                <Plus className="h-6 w-6" />
-                <h3 className="font-semibold text-xs">More</h3>
+  return (
+    <div className="mt-8">
+      <div className="grid gap-6">
+        {/* Persona Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {personas.map((persona) => (
+            <Card
+              key={persona.title}
+              className={`w-28 h-28 p-4 rounded-md cursor-pointer transition-colors 
+                border border-transparent bg-gray-800 hover:border-gray-500 hover:bg-gray-700 
+                flex flex-col items-center justify-center
+                ${
+                  selectedPersona === persona.title
+                    ? "border-blue-400 bg-gray-600"
+                    : ""
+                }
+              `}
+              onClick={() => handleSelectPersona(persona.title)}
+            >
+              <div className="flex flex-col items-center justify-center text-center gap-2 h-full">
+                {persona.icon}
+                <h3 className="font-semibold text-xs">{persona.title}</h3>
               </div>
             </Card>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Custom Persona</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="custom-persona">Enter your use case</Label>
-                <Input
-                  id="custom-persona"
-                  value={customPersona}
-                  onChange={(e) => setCustomPersona(e.target.value)}
-                  placeholder="e.g. Competitive Analysis"
-                />
-              </div>
-              <Button onClick={() => setSelectedPersona(customPersona)}>Add Persona</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          ))}
 
-      {/* “Next” button, or any relevant action */}
-      <div className="flex justify-end">
-        <Button
-          
-          disabled={!selectedPersona}
-          onClick={() => console.log("Persona chosen:", selectedPersona)}
-        >
-          Next
-        </Button>
+          {/* "More" card for custom persona entry */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Card
+                className="w-28 h-28 p-4 rounded-md cursor-pointer 
+                  border border-transparent bg-gray-800 
+                  hover:border-gray-500 hover:bg-gray-700 
+                  transition-colors flex flex-col items-center justify-center
+                "
+              >
+                <Plus className="h-6 w-6" />
+                <h3 className="font-semibold text-xs">More</h3>
+              </Card>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Custom Persona</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="custom-persona">Enter your use case</Label>
+                  <Input
+                    id="custom-persona"
+                    value={customPersona}
+                    onChange={(e) => setCustomPersona(e.target.value)}
+                    placeholder="e.g. Competitive Analysis"
+                  />
+                </div>
+                <Button onClick={handleAddCustomPersona}>Add Persona</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* "Next" Button */}
+        {/* <div className="flex justify-end">
+          <Button
+            disabled={!selectedPersona}
+            onClick={() => console.log("Persona chosen:", selectedPersona)}
+          >
+            Next
+          </Button>
+        </div> */}
       </div>
     </div>
   );

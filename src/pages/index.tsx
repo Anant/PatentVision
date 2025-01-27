@@ -78,8 +78,11 @@ export default function Home() {
 
 
       {/* Main Content */}
-      <div className="flex-1 p-8 max-w-5xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Patent Vision PoC</h1>
+      <div className="flex-1 p-8 max-w-7xl mx-auto">
+
+        <div className="flex items-center justify-center p-8">
+          <h1 className="text-4xl font-bold">Patent Vision</h1>
+        </div>
 
         {/* Enhanced Input */}
         <EnhancedInput onAddFiles={handleAddFiles} onAskQuestion={handleUploadAndProcess} />
