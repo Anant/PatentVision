@@ -16,23 +16,7 @@ import {
 } from "lucide-react";
 
 export function Sidebar() {
-  const cases = [
-    {
-      title: "US Patent 12345678",
-      type: "Quick Overview",
-      date: "2024-01-23",
-    },
-    {
-      title: "Patent Analysis XYZ",
-      type: "Investor Brief",
-      date: "2024-01-22",
-    },
-    {
-      title: "Tech Patent Review",
-      type: "Technical Deep Dive",
-      date: "2024-01-21",
-    },
-  ];
+
 
   const personas = [
     { icon: <Search className="h-6 w-6" />, title: "Quick Overview" },
@@ -61,16 +45,7 @@ export function Sidebar() {
       <div className="mt-4">
         <h2 className="px-2 text-lg font-semibold mb-2">Recent Cases</h2>
         <div className="grid gap-1">
-          {cases.map((item) => (
-            <Button key={item.title} variant="ghost" className="w-full justify-start text-left">
-              <div className="grid gap-0.5">
-                <span className="font-medium">{item.title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.type} — {item.date}
-                </span>
-              </div>
-            </Button>
-          ))}
+
         </div>
       </div>
 
