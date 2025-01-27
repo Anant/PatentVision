@@ -35,6 +35,7 @@ export function Sidebar() {
     <div className="flex flex-col gap-2 p-4 border-r bg-[rgba(255,255,255,0.05)]">
       {/* "New Analysis" Button */}
       <Link href="/">
+      {/* @ts-ignore */}
         <Button variant="ghost" className="w-full justify-start gap-2">
           <ScrollText className="h-4 w-4" />
           New Analysis
@@ -54,6 +55,7 @@ export function Sidebar() {
         <h2 className="px-2 text-lg font-semibold mb-2">Analysis Modes</h2>
         <div className="grid gap-1">
           {personas.map((p) => (
+            //@ts-ignore
             <Button key={p.title} variant="ghost" className="w-full justify-start gap-2 text-left">
               {p.icon}
               <span>{p.title}</span>

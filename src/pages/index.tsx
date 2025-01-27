@@ -6,6 +6,7 @@ import { PatentImage } from "../components/PatentResults/PatentImage";
 import { PatentAudio } from "@/components/PatentResults/PatentAudio";
 import { PatentStructuredDetails } from "../components/PatentResults/PatentStructuredDetails";
 import { ExtractedPdfText } from "@/components/PatentResults/ExtractedPdfText";
+import { PersonaSelect } from "@/components/PersonaSelect";
 
 export default function Home() {
   // ----------- States for PDF processing results -----------
@@ -23,6 +24,7 @@ export default function Home() {
   const [audioData, setAudioData] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showExtractedText, setShowExtractedText] = useState(false);
+  const [selectedPersona, setSelectedPersona] = useState("");
 
   // ----------- 1. Callback from EnhancedInput -----------
   const handleAddFiles = (files: File[]) => {
@@ -73,10 +75,7 @@ export default function Home() {
   // -------------- Render --------------
   return (
     <main className="flex min-h-screen bg-gray-900 text-gray-100">
-      {/* Left Sidebar */}
-      <aside className="w-64 border-r border-gray-800">
-        <Sidebar />
-      </aside>
+
 
       {/* Main Content */}
       <div className="flex-1 p-8 max-w-5xl mx-auto">
@@ -84,6 +83,9 @@ export default function Home() {
 
         {/* Enhanced Input */}
         <EnhancedInput onAddFiles={handleAddFiles} onAskQuestion={handleUploadAndProcess} />
+
+        {/* Persona Select */}
+        <PersonaSelect selectedPersona={selectedPersona} setSelectedPersona={setSelectedPersona} />
 
         {isLoading && (
           <p className="mt-4 text-blue-400">Processing... please wait.</p>
