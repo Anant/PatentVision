@@ -46,7 +46,7 @@ export default function Analysis() {
     {
       role: "assistant",
       content: summary
-        ? `Here's the summary:\n\n${summary}`
+        ? `Here's the summary:`
         : "Assistant's summary placeholder",
     },
   ];

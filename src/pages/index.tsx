@@ -71,14 +71,14 @@ export default function Home() {
         </div>
 
         {/* EnhancedInput => pass handleAddFiles + setQuestion */}
-        <EnhancedInput 
+        <EnhancedInput
           onAddFiles={handleAddFiles}
           setQuestion={setUserQuestion}
         />
 
         {/* Persona Select => user picks persona */}
-        <PersonaSelect 
-          selectedPersona={selectedPersona} 
+        <PersonaSelect
+          selectedPersona={selectedPersona}
           setSelectedPersona={setSelectedPersona}
         />
 
@@ -91,13 +91,16 @@ export default function Home() {
               console.log("User typed question:", userQuestion);
               handleUploadAndProcess();
             }}
+            className="bg-white text-black hover:bg-gray-200 border border-gray-700 px-6 py-3 rounded-lg transition-all duration-150 ease-in-out"
           >
             Next
           </Button>
         </div>
 
         {isLoading && (
-          <p className="mt-4 text-blue-400">Processing... please wait.</p>
+          <div className="flex justify-center items-center mt-8">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-400"></div>
+          </div>
         )}
       </div>
     </main>
