@@ -1,11 +1,9 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
-
-// Some icons from lucide-react or your preferred library
-import { Paperclip, Link as LinkIcon, Send } from "lucide-react";
+import { Paperclip, Link as LinkIcon } from "lucide-react";
 
 interface FileItem {
   file: File;
@@ -17,24 +15,29 @@ interface LinkItem {
 }
 
 export function EnhancedInput({
-  onAskQuestion,
   onAddFiles,
+  setQuestion,
 }: {
-  onAskQuestion: (question: string) => void;
   onAddFiles?: (files: File[]) => void;
+  setQuestion: (q: string) => void; // Parent callback to store typed question
 }) {
   // Local states
   const [files, setFiles] = useState<FileItem[]>([]);
   const [links, setLinks] = useState<LinkItem[]>([]);
-  const [message, setMessage] = useState("");
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);  // controlling PDF dialog
-  const [linkDialogOpen, setLinkDialogOpen] = useState(false); // controlling Link dialog
+  const [message, setMessage] = useState(""); // typed question (no "Send" button)
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
   const [newLink, setNewLink] = useState("");
 
-  // PDF File Input ref (hidden)
+  // Hidden PDF file input
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 1. Handle newly picked PDF files
+  // 1. Whenever message changes, notify parent
+  useEffect(() => {
+    setQuestion(message);
+  }, [message, setQuestion]);
+
+  // 2. Handle newly picked PDF files
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files).map((file) => ({
@@ -43,14 +46,13 @@ export function EnhancedInput({
       }));
       setFiles((prev) => [...prev, ...newFiles]);
 
-      // Pass them upward so the parent can store the PDFs
       if (onAddFiles) {
         onAddFiles(Array.from(e.target.files));
       }
     }
   };
 
-  // 2. Remove a file from the local list
+  // 3. Remove a file from local list
   const removeFile = (index: number) => {
     setFiles((prev) => {
       const updated = [...prev];
@@ -60,7 +62,7 @@ export function EnhancedInput({
     });
   };
 
-  // 3. Add a link to the local list
+  // 4. Add a link to the local list
   const addLink = () => {
     const link = newLink.trim();
     if (link) {
@@ -70,7 +72,7 @@ export function EnhancedInput({
     }
   };
 
-  // 4. Remove a link
+  // 5. Remove a link
   const removeLink = (index: number) => {
     setLinks((prev) => {
       const updated = [...prev];
@@ -79,14 +81,7 @@ export function EnhancedInput({
     });
   };
 
-  // 5. Submit text question to parent
-  const handleSubmit = () => {
-    const q = message.trim();
-    if (q) {
-      onAskQuestion(q);
-      setMessage("");
-    }
-  };
+  // No "Send" button or submit function—"Next" is handled in the parent.
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4">
@@ -96,10 +91,7 @@ export function EnhancedInput({
           <div className="overflow-auto h-24 bg-gray-700 p-2 rounded mb-4">
             <div className="space-y-2">
               {files.map((f, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 text-sm text-gray-300"
-                >
+                <div key={idx} className="flex items-center gap-2 text-sm text-gray-300">
                   <span className="truncate flex-1">{f.file.name}</span>
                   <button
                     className="px-2 py-1 text-red-400 hover:text-red-500"
@@ -110,10 +102,7 @@ export function EnhancedInput({
                 </div>
               ))}
               {links.map((l, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 text-sm text-gray-300"
-                >
+                <div key={idx} className="flex items-center gap-2 text-sm text-gray-300">
                   <span className="truncate flex-1">{l.url}</span>
                   <button
                     className="px-2 py-1 text-red-400 hover:text-red-500"
@@ -127,9 +116,8 @@ export function EnhancedInput({
           </div>
         )}
 
-        {/* The main input row */}
+        {/* The question input row (no "Send" button) */}
         <div className="flex gap-2 items-center">
-          {/* Message input */}
           <input
             type="text"
             placeholder="Do you have any questions?"
@@ -137,25 +125,14 @@ export function EnhancedInput({
             onChange={(e) => setMessage(e.target.value)}
             className="flex-1 p-2 rounded bg-gray-900 border border-gray-700 text-white"
           />
-
-          {/* Submit message */}
-          <button
-            onClick={handleSubmit}
-            className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1"
-          >
-            <Send className="h-4 w-4" />
-            <span>Send</span>
-          </button>
         </div>
 
-        {/* 2 Hidden triggers that open dialogs (one for PDF, one for Link) */}
+        {/* Buttons to open PDF & Link dialogs */}
         <div className="flex gap-4 mt-3">
           {/* PDF Dialog */}
           <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
             <DialogTrigger asChild>
-              <button
-                className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center gap-1"
-              >
+              <button className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center gap-1">
                 <Paperclip className="h-4 w-4" />
                 PDF
               </button>
@@ -168,7 +145,6 @@ export function EnhancedInput({
                 <p className="text-sm text-gray-300">
                   Select one or more PDF files to attach.
                 </p>
-                {/* Hidden input for picking files */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -180,7 +156,7 @@ export function EnhancedInput({
                   hover:file:bg-blue-100"
                   onChange={(e) => {
                     handleFileChange(e);
-                    setPdfDialogOpen(false); // close dialog after picking
+                    setPdfDialogOpen(false);
                   }}
                 />
               </div>
@@ -190,9 +166,7 @@ export function EnhancedInput({
           {/* Link Dialog */}
           <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
             <DialogTrigger asChild>
-              <button
-                className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center gap-1"
-              >
+              <button className="px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center gap-1">
                 <LinkIcon className="h-4 w-4" />
                 Link
               </button>

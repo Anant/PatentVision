@@ -1,44 +1,28 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
+import { Button } from "@/components/ui/button";
 
-import { Sidebar } from "../components/Sidebar";
+// Your existing result components are no longer shown here, 
+// because we redirect to /analysis for the final display
 import { EnhancedInput } from "../components/EnhancedInput";
-import { PatentSummary } from "@/components/PatentResults/PatentSummary";
-import { PatentImage } from "../components/PatentResults/PatentImage";
-import { PatentAudio } from "@/components/PatentResults/PatentAudio";
-import { PatentStructuredDetails } from "../components/PatentResults/PatentStructuredDetails";
-import { ExtractedPdfText } from "@/components/PatentResults/ExtractedPdfText";
 import { PersonaSelect } from "@/components/PersonaSelect";
 
 export default function Home() {
   const router = useRouter();
 
-  // ----------- States for PDF processing results -----------
+  // States
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [extractedText, setExtractedText] = useState("");
-  const [summary, setSummary] = useState("");
-  const [strucresponse, setStrucresponse] = useState<{
-    name: string;
-    date: string;
-    owner: string;
-    viabilityScore: number;
-    additionalInfo?: string;
-  } | null>(null);
-  const [imageUrl, setImageUrl] = useState("");
-  const [audioData, setAudioData] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [showExtractedText, setShowExtractedText] = useState(false);
+  const [userQuestion, setUserQuestion] = useState("");
   const [selectedPersona, setSelectedPersona] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // ----------- 1. Callback from EnhancedInput -----------
+  // Handle PDF from EnhancedInput
   const handleAddFiles = (files: File[]) => {
-    if (files.length > 0) {
-      setPdfFile(files[0]);
-    }
+    if (files.length > 0) setPdfFile(files[0]);
   };
 
-  // ----------- 2. Upload & Process PDF -----------
-  const handleUploadAndProcess = async (message: string) => {
+  // Submit the PDF, question, persona to server
+  const handleUploadAndProcess = async () => {
     if (!pdfFile) {
       alert("Please select or attach a PDF file first.");
       return;
@@ -48,7 +32,7 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append("file", pdfFile);
-      formData.append("question", message);
+      formData.append("question", userQuestion);
       formData.append("persona", selectedPersona);
 
       const res = await fetch("/api/upload-pdf", { method: "POST", body: formData });
@@ -59,15 +43,15 @@ export default function Home() {
         return;
       }
 
-      // Instead of setting local state, redirect to /analysis
+      // Now we redirect to /analysis with the returned data
       router.push({
         pathname: "/analysis",
         query: {
-          summary: data.summary ?? "",
-          imageUrl: data.imageUrl ?? "",
-          audioData: data.audioData ?? "",
-          extractedText: data.extractedText ?? "",
-          strucresponse: JSON.stringify(data.strucresponse ?? {}), // JSON-encode
+          summary: data.summary || "",
+          imageUrl: data.imageUrl || "",
+          audioData: data.audioData || "",
+          extractedText: data.extractedText || "",
+          strucresponse: JSON.stringify(data.strucresponse || {}),
           persona: selectedPersona,
         },
       });
@@ -79,48 +63,41 @@ export default function Home() {
     }
   };
 
-
-  // -------------- Render --------------
   return (
     <main className="flex min-h-screen bg-gray-900 text-gray-100">
-
-
-      {/* Main Content */}
       <div className="flex-1 p-8 max-w-7xl mx-auto">
-
         <div className="flex items-center justify-center p-8">
           <h1 className="text-4xl font-bold">Patent Vision</h1>
         </div>
 
-        {/* Enhanced Input */}
-        <EnhancedInput onAddFiles={handleAddFiles} onAskQuestion={handleUploadAndProcess} />
+        {/* EnhancedInput => pass handleAddFiles + setQuestion */}
+        <EnhancedInput 
+          onAddFiles={handleAddFiles}
+          setQuestion={setUserQuestion}
+        />
 
-        {/* Persona Select */}
-        <PersonaSelect selectedPersona={selectedPersona} setSelectedPersona={setSelectedPersona} />
+        {/* Persona Select => user picks persona */}
+        <PersonaSelect 
+          selectedPersona={selectedPersona} 
+          setSelectedPersona={setSelectedPersona}
+        />
+
+        {/* Next Button => final submission */}
+        <div className="flex justify-end mt-4">
+          <Button
+            disabled={!selectedPersona}
+            onClick={() => {
+              console.log("Persona chosen:", selectedPersona);
+              console.log("User typed question:", userQuestion);
+              handleUploadAndProcess();
+            }}
+          >
+            Next
+          </Button>
+        </div>
 
         {isLoading && (
           <p className="mt-4 text-blue-400">Processing... please wait.</p>
-        )}
-
-        {/* 1. PatentSummary */}
-        {summary && <PatentSummary summary={summary} />}
-
-        {/* 3. PatentAudio */}
-        {audioData && <PatentAudio audioData={audioData} />}
-
-        {/* 2. PatentImage */}
-        {imageUrl && <PatentImage imageUrl={imageUrl} />}
-
-        {/* 4. PatentStructuredDetails */}
-        {strucresponse && <PatentStructuredDetails details={strucresponse} />}
-
-        {/* 5. Extracted PDF Text */}
-        {extractedText && (
-          <ExtractedPdfText
-            extractedText={extractedText}
-            showExtractedText={showExtractedText}
-            setShowExtractedText={setShowExtractedText}
-          />
         )}
       </div>
     </main>

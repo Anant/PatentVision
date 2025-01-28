@@ -118,15 +118,7 @@ export function PersonaSelect({ selectedPersona, setSelectedPersona }: PersonaSe
           </Dialog>
         </div>
 
-        {/* "Next" Button */}
-        <div className="flex justify-end">
-          <Button
-            disabled={!selectedPersona}
-            onClick={() => console.log("Persona chosen:", selectedPersona)}
-          >
-            Next
-          </Button>
-        </div>
+        
       </div>
     </div>
   );
