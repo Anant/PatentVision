@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useRouter } from "next/router";
+
 import { Sidebar } from "../components/Sidebar";
 import { EnhancedInput } from "../components/EnhancedInput";
 import { PatentSummary } from "@/components/PatentResults/PatentSummary";
@@ -9,6 +11,8 @@ import { ExtractedPdfText } from "@/components/PatentResults/ExtractedPdfText";
 import { PersonaSelect } from "@/components/PersonaSelect";
 
 export default function Home() {
+  const router = useRouter();
+
   // ----------- States for PDF processing results -----------
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState("");
@@ -39,34 +43,34 @@ export default function Home() {
       alert("Please select or attach a PDF file first.");
       return;
     }
-  
+
     setIsLoading(true);
     try {
       const formData = new FormData();
       formData.append("file", pdfFile);
-  
-      // Pass the user’s typed question and the currently selected persona
       formData.append("question", message);
       formData.append("persona", selectedPersona);
-  
-      const res = await fetch("/api/upload-pdf", {
-        method: "POST",
-        body: formData,
-      });
+
+      const res = await fetch("/api/upload-pdf", { method: "POST", body: formData });
       const data = await res.json();
-  
+
       if (!res.ok) {
         alert(data.error || "Error processing PDF");
         return;
       }
-  
-      // Update state with results
-      setExtractedText(data.extractedText || "");
-      setSummary(data.summary || "");
-      setImageUrl(data.imageUrl || "");
-      setAudioData(data.audioData || "");
-      setStrucresponse(data.strucresponse || null);
-      setShowExtractedText(false);
+
+      // Instead of setting local state, redirect to /analysis
+      router.push({
+        pathname: "/analysis",
+        query: {
+          summary: data.summary ?? "",
+          imageUrl: data.imageUrl ?? "",
+          audioData: data.audioData ?? "",
+          extractedText: data.extractedText ?? "",
+          strucresponse: JSON.stringify(data.strucresponse ?? {}), // JSON-encode
+          persona: selectedPersona,
+        },
+      });
     } catch (err) {
       console.error("Error uploading/parsing PDF:", err);
       alert("Error uploading/parsing PDF");
@@ -74,6 +78,7 @@ export default function Home() {
       setIsLoading(false);
     }
   };
+
 
   // -------------- Render --------------
   return (
@@ -100,7 +105,7 @@ export default function Home() {
         {/* 1. PatentSummary */}
         {summary && <PatentSummary summary={summary} />}
 
-        {/* 3. PatentAudio */}        
+        {/* 3. PatentAudio */}
         {audioData && <PatentAudio audioData={audioData} />}
 
         {/* 2. PatentImage */}
