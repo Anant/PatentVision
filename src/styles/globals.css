@@ -1,21 +1,16 @@
+/* src/styles/globals.css */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+html {
+  transition: background-color 0.5s, color 0.5s;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Apply background and text colors globally using Tailwind's utility classes */
 body {
-  color: var(--foreground);
-  background: var(--background);
+  @apply bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
   font-family: Arial, Helvetica, sans-serif;
 }
+

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 // because we redirect to /analysis for the final display
 import { EnhancedInput } from "../components/EnhancedInput";
 import { PersonaSelect } from "@/components/PersonaSelect";
+import ThemeToggle from "@/components/ThemeToggle"; // Import ThemeToggle
 
 export default function Home() {
   const router = useRouter();
@@ -64,10 +65,12 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen bg-gray-900">
+    <main className="flex min-h-screen">
       <div className="flex-1 p-8 max-w-7xl mx-auto">
-        <div className="flex items-center justify-center p-8">
+        {/* Header with Title and Theme Toggle */}
+        <div className="flex items-center justify-between p-8">
           <h1 className="text-4xl font-bold">Patent Vision</h1>
+          <ThemeToggle /> {/* Add ThemeToggle here */}
         </div>
 
         {/* EnhancedInput => pass handleAddFiles + setQuestion */}
@@ -91,12 +94,22 @@ export default function Home() {
               console.log("User typed question:", userQuestion);
               handleUploadAndProcess();
             }}
-            className="bg-white text-black hover:bg-gray-200 border border-gray-700 px-6 py-3 rounded-lg transition-all duration-150 ease-in-out"
+            className={`
+      px-6 py-3 rounded-lg transition-all duration-150 ease-in-out
+      border 
+      ${selectedPersona
+                ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                : "bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed"
+              }
+      dark:border-blue-400 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-600
+    `}
           >
             Next
           </Button>
         </div>
 
+
+        {/* Loading Spinner */}
         {isLoading && (
           <div className="flex justify-center items-center mt-8">
             <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-400"></div>

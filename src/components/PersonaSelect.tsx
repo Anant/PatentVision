@@ -67,13 +67,16 @@ export function PersonaSelect({ selectedPersona, setSelectedPersona }: PersonaSe
                         <Card
                             key={persona.title}
                             className={`w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 p-3 sm:p-4 rounded-md cursor-pointer transition-colors 
-            border border-transparent bg-gray-800 hover:border-gray-500 hover:bg-gray-700 
-            flex flex-col items-center justify-center
-            ${selectedPersona === persona.title
-                                    ? "border-blue-400 bg-gray-600"
-                                    : ""
+                                border 
+                                bg-white dark:bg-gray-800 
+                                hover:border-gray-500 hover:bg-gray-100 dark:hover:border-gray-500 dark:hover:bg-gray-700 
+                                flex flex-col items-center justify-center
+                                ${
+                                    selectedPersona === persona.title
+                                        ? "border-blue-400 bg-blue-100 dark:bg-gray-700"
+                                        : ""
                                 }
-          `}
+                            `}
                             onClick={() => handleSelectPersona(persona.title)}
                         >
                             <div className="flex flex-col items-center justify-center text-center gap-1 sm:gap-2 h-full">
@@ -91,37 +94,42 @@ export function PersonaSelect({ selectedPersona, setSelectedPersona }: PersonaSe
                     <Dialog>
                         <DialogTrigger asChild>
                             <Card
-                                className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 p-3 sm:p-4 rounded-md cursor-pointer 
-              border border-transparent bg-gray-800 
-              hover:border-gray-500 hover:bg-gray-700 
-              transition-colors flex flex-col items-center justify-center
-            "
+                                className={`w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 p-3 sm:p-4 rounded-md cursor-pointer 
+                                    border 
+                                    bg-white dark:bg-gray-800 
+                                    hover:border-gray-500 hover:bg-gray-100 dark:hover:border-gray-500 dark:hover:bg-gray-700 
+                                    transition-colors flex flex-col items-center justify-center
+                                `}
                             >
                                 <Plus className="h-6 w-6 sm:h-8 sm:w-8 md:h-10 md:w-10" />
                                 <h3 className="font-semibold text-xs sm:text-sm md:text-base">More</h3>
                             </Card>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600">
                             <DialogHeader>
                                 <DialogTitle>Custom Persona</DialogTitle>
                             </DialogHeader>
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="custom-persona">Enter your use case</Label>
+                                    <Label htmlFor="custom-persona" className="text-gray-700 dark:text-gray-300">
+                                        Enter your use case
+                                    </Label>
                                     <Input
                                         id="custom-persona"
                                         value={customPersona}
                                         onChange={(e) => setCustomPersona(e.target.value)}
                                         placeholder="e.g. Competitive Analysis"
+                                        className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                                     />
                                 </div>
-                                <Button onClick={handleAddCustomPersona}>Add Persona</Button>
+                                <Button onClick={handleAddCustomPersona} className="bg-blue-600 hover:bg-blue-500 text-white">
+                                    Add Persona
+                                </Button>
                             </div>
                         </DialogContent>
                     </Dialog>
                 </div>
             </div>
         </div>
-
     );
 }

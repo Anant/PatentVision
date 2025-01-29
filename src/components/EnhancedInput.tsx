@@ -85,13 +85,13 @@ export function EnhancedInput({
 
     return (
         <div className="w-full max-w-3xl mx-auto space-y-4">
-            <div className="p-4 border border-gray-700 bg-gray-800 rounded">
+            <div className="p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded">
                 {/* If we have any files or links, show them */}
                 {(files.length > 0 || links.length > 0) && (
-                    <div className="overflow-auto h-24 bg-gray-700 p-2 rounded mb-4">
+                    <div className="overflow-auto h-24 bg-gray-100 dark:bg-gray-700 p-2 rounded mb-4">
                         <div className="space-y-2">
                             {files.map((f, idx) => (
-                                <div key={idx} className="flex items-center gap-2 text-sm text-gray-300">
+                                <div key={idx} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                     <span className="truncate flex-1">{f.file.name}</span>
                                     <button
                                         className="px-2 py-1 text-red-400 hover:text-red-500"
@@ -102,7 +102,7 @@ export function EnhancedInput({
                                 </div>
                             ))}
                             {links.map((l, idx) => (
-                                <div key={idx} className="flex items-center gap-2 text-sm text-gray-300">
+                                <div key={idx} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                                     <span className="truncate flex-1">{l.url}</span>
                                     <button
                                         className="px-2 py-1 text-red-400 hover:text-red-500"
@@ -123,31 +123,31 @@ export function EnhancedInput({
                         placeholder="Do you have any questions?"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="flex-1 p-2 rounded bg-gray-900 border border-gray-700 text-white"
+                        className="flex-1 p-2 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                     />
 
                     {/* PDF Dialog */}
                     <Dialog open={pdfDialogOpen} onOpenChange={setPdfDialogOpen}>
                         <DialogTrigger asChild>
-                            <button className="p-2 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center">
+                            <button className="p-2 rounded bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center">
                                 <Paperclip className="h-5 w-5" />
                             </button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600">
                             <DialogHeader>
                                 <DialogTitle>Attach a PDF</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                                <p className="text-sm text-gray-300">Select one or more PDF files to attach.</p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">Select one or more PDF files to attach.</p>
                                 <input
                                     ref={fileInputRef}
                                     type="file"
                                     multiple
                                     accept="application/pdf"
-                                    className="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4
-              file:rounded file:border-0 file:text-sm file:font-semibold
-              file:bg-blue-50 file:text-blue-700
-              hover:file:bg-blue-100"
+                                    className="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4
+                  file:rounded file:border-0 file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-blue-300 dark:hover:file:bg-blue-600"
                                     onChange={(e) => {
                                         handleFileChange(e);
                                         setPdfDialogOpen(false);
@@ -160,29 +160,30 @@ export function EnhancedInput({
                     {/* Link Dialog */}
                     <Dialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen}>
                         <DialogTrigger asChild>
-                            <button className="p-2 rounded bg-gray-700 hover:bg-gray-600 text-white flex items-center justify-center">
+                            <button className="p-2 rounded bg-green-600 hover:bg-green-700 text-white flex items-center justify-center">
                                 <LinkIcon className="h-5 w-5" />
                             </button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600">
                             <DialogHeader>
                                 <DialogTitle>Add a Link</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4">
-                                <Label htmlFor="link-field">Enter URL</Label>
+                                <Label htmlFor="link-field" className="text-gray-700 dark:text-gray-300">Enter URL</Label>
                                 <Input
                                     id="link-field"
                                     placeholder="https://example.com"
                                     value={newLink}
                                     onChange={(e) => setNewLink(e.target.value)}
+                                    className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                                 />
-                                <Button onClick={addLink}>Add Link</Button>
+                                <Button onClick={addLink} className="bg-green-600 hover:bg-green-700 text-white">
+                                    Add Link
+                                </Button>
                             </div>
                         </DialogContent>
                     </Dialog>
                 </div>
             </div>
         </div>
-
-    );
-}
+    )}
