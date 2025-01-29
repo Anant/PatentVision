@@ -64,7 +64,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen bg-gray-900 text-gray-100">
+    <main className="flex min-h-screen bg-gray-900">
       <div className="flex-1 p-8 max-w-7xl mx-auto">
         <div className="flex items-center justify-center p-8">
           <h1 className="text-4xl font-bold">Patent Vision</h1>
