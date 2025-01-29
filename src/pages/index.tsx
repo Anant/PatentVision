@@ -68,10 +68,6 @@ export default function Home() {
     <main className="flex min-h-screen">
       <div className="flex-1 p-8 max-w-7xl mx-auto">
         {/* Header with Title and Theme Toggle */}
-        <div className="flex items-center justify-between p-8">
-          <h1 className="text-4xl font-bold">Patent Vision</h1>
-          <ThemeToggle /> {/* Add ThemeToggle here */}
-        </div>
 
         {/* EnhancedInput => pass handleAddFiles + setQuestion */}
         <EnhancedInput

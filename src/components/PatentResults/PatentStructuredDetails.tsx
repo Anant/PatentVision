@@ -12,22 +12,22 @@ interface PatentDetails {
 export function PatentStructuredDetails({ details }: { details: PatentDetails }) {
   return (
     <div className="mb-6">
-      <h2 className="text-xl font-semibold mb-2">Patent Details</h2>
-      <div className="border border-gray-700 bg-gray-800 p-4 rounded">
-        <p>
+      <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">Patent Details</h2>
+      <div className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 rounded">
+        <p className="text-gray-700 dark:text-gray-300">
           <span className="font-semibold">Name:</span> {details.name}
         </p>
-        <p>
+        <p className="text-gray-700 dark:text-gray-300">
           <span className="font-semibold">Date:</span> {details.date}
         </p>
-        <p>
+        <p className="text-gray-700 dark:text-gray-300">
           <span className="font-semibold">Owner:</span> {details.owner}
         </p>
-        <p>
+        <p className="text-gray-700 dark:text-gray-300">
           <span className="font-semibold">Viability Score:</span> {details.viabilityScore}/10
         </p>
         {details.additionalInfo && (
-          <p>
+          <p className="text-gray-700 dark:text-gray-300">
             <span className="font-semibold">Additional Info:</span> {details.additionalInfo}
           </p>
         )}
