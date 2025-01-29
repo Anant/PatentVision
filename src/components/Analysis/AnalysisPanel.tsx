@@ -10,7 +10,7 @@ interface AnalysisPanelProps {
   imageUrl?: string;
   audioData?: string;
   extractedText?: string;
-  parsedStruct?: any; // or a specific type if you have one
+  parsedStruct?: any; // Replace 'any' with a more specific type if available
 }
 
 export function AnalysisPanel({
@@ -27,7 +27,7 @@ export function AnalysisPanel({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Patent details card */}
       <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
-        <h2 className="text-lg font-semibold mb-4">Patent Details</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Patent Details</h2>
 
         {/* 1) Show the summary */}
         {summary && <PatentSummary summary={summary} />}
@@ -48,7 +48,7 @@ export function AnalysisPanel({
       <div className="space-y-4">
         {/* Patent Visualization */}
         <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
-          <h3 className="text-md font-semibold mb-2">Patent Visualization</h3>
+          <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-gray-100">Patent Visualization</h3>
           {imageUrl ? (
             <PatentImage imageUrl={imageUrl} />
           ) : (
@@ -60,7 +60,7 @@ export function AnalysisPanel({
 
         {/* Video Explanation (placeholder) */}
         <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
-          <h3 className="text-md font-semibold mb-2">Video Explanation</h3>
+          <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-gray-100">Video Explanation</h3>
           <div className="aspect-video bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded">
             <span className="text-gray-500 dark:text-gray-300">Video Player Placeholder</span>
           </div>
@@ -68,7 +68,7 @@ export function AnalysisPanel({
 
         {/* Audio Analysis */}
         <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
-          <h3 className="text-md font-semibold mb-2">Audio Analysis</h3>
+          <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-gray-100">Audio Analysis</h3>
           {audioData ? (
             <PatentAudio audioData={audioData} />
           ) : (

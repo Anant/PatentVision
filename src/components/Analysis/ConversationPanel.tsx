@@ -16,7 +16,7 @@ export function ConversationPanel({ conversation }: ConversationPanelProps) {
       {conversation.map((msg, index) => (
         <div key={index} className="flex items-start space-x-4">
           <div>
-            <p className="font-bold">
+            <p className="font-bold text-gray-900 dark:text-gray-100">
               {msg.role === "assistant"
                 ? "Assistant"
                 : msg.role === "user"
@@ -26,7 +26,9 @@ export function ConversationPanel({ conversation }: ConversationPanelProps) {
           </div>
           <div className="flex-1">
             <div className="mt-1 p-3 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
-              <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+              <p className="text-sm whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                {msg.content}
+              </p>
             </div>
             {msg.role === "assistant" && (
               <div className="flex gap-2 mt-2">
