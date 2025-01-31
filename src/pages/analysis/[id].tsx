@@ -8,10 +8,11 @@ import { SuggestedQuestions } from "@/components/Analysis/SuggestedQuestions";
 
 export default function AnalysisByIdPage({ analysisData }: { analysisData: any }) {
   if (!analysisData) {
+    // If the record is missing or the ID was invalid
     return <div className="p-6">No analysis found.</div>;
   }
 
-  // Build conversation
+  // Build a minimal conversation array
   const conversation = [
     { role: "user", content: analysisData.persona ? `I am a ${analysisData.persona} persona...` : "Placeholder" },
     { role: "assistant", content: analysisData.summary ? "Here's the summary:" : "Placeholder" },
@@ -25,8 +26,7 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
     <div className="flex flex-col h-screen">
       <div className="flex-1 grid md:grid-cols-[1fr_2fr] divide-x">
         <div className="p-6 overflow-y-auto">
-            {/* @ts-ignore */}
-          <ConversationPanel conversation={conversation} />
+          <ConversationPanel conversation={conversation as any} />
         </div>
         <div className="p-4 overflow-auto">
           <AnalysisPanel
@@ -51,15 +51,20 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
 // Runs on the server for every request to /analysis/[id]
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const id = context.params?.id;
+
+  // If 'id' is missing or not a string, gracefully handle it.
+  // This will prevent 'Invalid URL' at build time
   if (!id || typeof id !== "string") {
+    // Provide empty data or even return notFound to avoid errors
     return { props: { analysisData: null } };
   }
 
-  // This runs on the server => safe to call DB code
+  // Otherwise, fetch from DB
   const analysisDoc = await fetchAnalysisById(id);
+  // If fetchAnalysisById returns null/undefined, your page can render "No analysis found."
   return {
     props: {
-      analysisData: analysisDoc,
+      analysisData: analysisDoc ?? null,
     },
   };
 };
