@@ -13,6 +13,7 @@ interface Message {
 export default function Analysis() {
   const router = useRouter();
   const {
+    analysisId,
     summary = "",
     imageUrl = "",
     audioData = "",
@@ -21,6 +22,11 @@ export default function Analysis() {
     // We'll parse strucresponse if present
     strucresponse = "{}",
   } = router.query;
+
+  // if you have analysisId from the server response
+  const shareUrl = analysisId
+    ? `${window.location.origin}/analysis/${analysisId}`
+    : null;
 
   // Ensure all variables are strings
   const summaryStr = Array.isArray(summary) ? summary[0] : summary;
@@ -70,6 +76,18 @@ export default function Analysis() {
 
   return (
     <div className="flex flex-col h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+      
+      <div className="flex items-center justify-end p-4 border-b border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+        {shareUrl && (
+          <button
+            onClick={() => navigator.clipboard.writeText(shareUrl)}
+            className="px-3 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Copy Share Link
+          </button>
+        )}
+      </div>
+
       <div className="flex-1 grid md:grid-cols-[1fr_2fr] divide-x divide-gray-300 dark:divide-gray-700">
         {/* Left: conversation area */}
         <div className="p-6 overflow-y-auto">

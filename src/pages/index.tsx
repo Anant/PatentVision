@@ -47,6 +47,7 @@ export default function Home() {
       router.push({
         pathname: "/analysis",
         query: {
+          analysisId: data.analysisId,
           summary: data.summary || "",
           imageUrl: data.imageUrl || "",
           audioData: data.audioData || "",

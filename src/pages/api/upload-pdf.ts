@@ -36,7 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Generate a doc ID
     const analysisId = uuidv4();
 
-    console.log(userQuestion)
 
     // Prepare the record
     const record = {
