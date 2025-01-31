@@ -1,34 +1,49 @@
-// pages/analysis/[id].tsx
-import React from "react";
-import { GetServerSideProps } from "next";
-import { fetchAnalysisById } from "../../../lib/db/analysis";
+// No getServerSideProps. Pure client fetch.
+
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { ConversationPanel } from "@/components/Analysis/ConversationPanel";
 import { AnalysisPanel } from "@/components/Analysis/AnalysisPanel";
 import { SuggestedQuestions } from "@/components/Analysis/SuggestedQuestions";
 
-export default function AnalysisByIdPage({ analysisData }: { analysisData: any }) {
-  // If there's no data (missing or invalid ID, or DB fetch returned nothing)
-  if (!analysisData) {
-    return <div className="p-6">No analysis found.</div>;
-  }
+export default function AnalysisClientOnlyPage() {
+  const router = useRouter();
+  const { id } = router.query;
 
-  // Basic conversation array
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!id) return; // Wait for Next.js to parse [id]
+
+    fetch(`/api/analysis/${id}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `Error ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((json) => {
+        setAnalysisData(json.analysisData);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [id]);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (!analysisData) return <div>No analysis found</div>;
+
+  // Normal UI with analysisData
   const conversation = [
-    {
-      role: "user",
-      content: analysisData.persona
-        ? `I am a ${analysisData.persona} persona...`
-        : "Placeholder",
-    },
-    {
-      role: "assistant",
-      content: analysisData.summary ? "Here's the summary:" : "Placeholder",
-    },
+    { role: "user", content: analysisData.persona ?? "Placeholder" },
+    { role: "assistant", content: analysisData.summary ? "Here's the summary:" : "Placeholder" },
   ];
-
-  function askQuestion(question: string) {
-    console.log("Follow-up question:", question);
-  }
 
   return (
     <div className="flex flex-col h-screen">
@@ -50,37 +65,12 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
           />
         </div>
       </div>
-
       <div className="p-4 border-t">
         <SuggestedQuestions
           questions={["Key claims?", "Compare to existing art?", "Licensing?"]}
-          onQuestionSelect={askQuestion}
+          onQuestionSelect={(q) => console.log("Follow-up question:", q)}
         />
       </div>
     </div>
   );
 }
-
-// SSR for /analysis/[id]
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const id = context.params?.id;
-
-  // If there's no valid "id", cause 404 => build won't crash
-  if (!id || typeof id !== "string") {
-    return { notFound: true };
-  }
-
-  // Otherwise, we do the DB fetch
-  const analysisDoc = await fetchAnalysisById(id);
-
-  // If no document in DB, also 404
-  if (!analysisDoc) {
-    return { notFound: true };
-  }
-
-  return {
-    props: {
-      analysisData: analysisDoc,
-    },
-  };
-};
