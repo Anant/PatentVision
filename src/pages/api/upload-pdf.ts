@@ -5,6 +5,7 @@ import { parsePdfFile } from "../../../lib/parsePdf";
 import { callAiSummaries } from "../../../lib/ai/callAiSummaries";
 import { storeAnalysis } from "../../../lib/db/analysis";
 import { v4 as uuidv4 } from "uuid";
+import { uploadAudioBase64 } from "../../../lib/uploadAudio";
 
 export const config = {
   api: { bodyParser: false },
@@ -33,14 +34,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       extractedText,
     });
 
+    let audioUrl = "";
+    if (audioData) {
+      try {
+        audioUrl = await uploadAudioBase64(audioData);
+      } catch (err) {
+        console.error("Error uploading audio to Bunny:", err);
+        // fallback or handle error
+      }
+    }
+
     // Generate a doc ID
     const analysisId = uuidv4();
-
 
     // Prepare the record
     const record = {
       id: analysisId,
-      persona:persona[0],
+      persona: persona[0],
       userquestion: userQuestion[0],
       extractedtext: extractedText,
       summary,
@@ -49,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       strucresponse: JSON.stringify(strucresponse),
       createdat: new Date().toISOString(),
     };
-    
+
 
     // Store in Astra 
     await storeAnalysis(record);
