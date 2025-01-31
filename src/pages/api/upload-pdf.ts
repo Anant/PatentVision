@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userquestion: userQuestion[0],
       extractedtext: extractedText,
       summary,
-      imageurl: "imageUrl",
+      imageurl: imageUrl,
       audiodata: "audioData",
       strucresponse: JSON.stringify(strucresponse),
       createdat: new Date().toISOString(),
