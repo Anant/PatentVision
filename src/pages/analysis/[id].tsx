@@ -7,12 +7,12 @@ import { AnalysisPanel } from "@/components/Analysis/AnalysisPanel";
 import { SuggestedQuestions } from "@/components/Analysis/SuggestedQuestions";
 
 export default function AnalysisByIdPage({ analysisData }: { analysisData: any }) {
-  // If the record is missing or the ID was invalid
+  // If there's no data (missing or invalid ID, or DB fetch returned nothing)
   if (!analysisData) {
     return <div className="p-6">No analysis found.</div>;
   }
 
-  // Build a minimal conversation array
+  // Basic conversation array
   const conversation = [
     {
       role: "user",
@@ -22,9 +22,7 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
     },
     {
       role: "assistant",
-      content: analysisData.summary
-        ? "Here's the summary:"
-        : "Placeholder",
+      content: analysisData.summary ? "Here's the summary:" : "Placeholder",
     },
   ];
 
@@ -52,6 +50,7 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
           />
         </div>
       </div>
+
       <div className="p-4 border-t">
         <SuggestedQuestions
           questions={["Key claims?", "Compare to existing art?", "Licensing?"]}
@@ -62,24 +61,23 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
   );
 }
 
-// Runs on the server for every request to /analysis/[id]
+// SSR for /analysis/[id]
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const id = context.params?.id;
-  
-  // If 'id' is missing or not a string, return notFound => build won't crash
+
+  // If there's no valid "id", cause 404 => build won't crash
   if (!id || typeof id !== "string") {
     return { notFound: true };
   }
 
-  // Attempt DB fetch
+  // Otherwise, we do the DB fetch
   const analysisDoc = await fetchAnalysisById(id);
 
-  // If fetch returned null or undefined, also return notFound
+  // If no document in DB, also 404
   if (!analysisDoc) {
     return { notFound: true };
   }
 
-  // Otherwise, we have a valid doc
   return {
     props: {
       analysisData: analysisDoc,
