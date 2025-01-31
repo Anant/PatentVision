@@ -7,15 +7,25 @@ import { AnalysisPanel } from "@/components/Analysis/AnalysisPanel";
 import { SuggestedQuestions } from "@/components/Analysis/SuggestedQuestions";
 
 export default function AnalysisByIdPage({ analysisData }: { analysisData: any }) {
+  // If the record is missing or the ID was invalid
   if (!analysisData) {
-    // If the record is missing or the ID was invalid
     return <div className="p-6">No analysis found.</div>;
   }
 
   // Build a minimal conversation array
   const conversation = [
-    { role: "user", content: analysisData.persona ? `I am a ${analysisData.persona} persona...` : "Placeholder" },
-    { role: "assistant", content: analysisData.summary ? "Here's the summary:" : "Placeholder" },
+    {
+      role: "user",
+      content: analysisData.persona
+        ? `I am a ${analysisData.persona} persona...`
+        : "Placeholder",
+    },
+    {
+      role: "assistant",
+      content: analysisData.summary
+        ? "Here's the summary:"
+        : "Placeholder",
+    },
   ];
 
   function askQuestion(question: string) {
@@ -34,7 +44,11 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
             imageUrl={analysisData.imageurl}
             audioData={analysisData.audiodata}
             extractedText={analysisData.extractedtext}
-            parsedStruct={analysisData.strucresponse ? JSON.parse(analysisData.strucresponse) : {}}
+            parsedStruct={
+              analysisData.strucresponse
+                ? JSON.parse(analysisData.strucresponse)
+                : {}
+            }
           />
         </div>
       </div>
@@ -51,20 +65,24 @@ export default function AnalysisByIdPage({ analysisData }: { analysisData: any }
 // Runs on the server for every request to /analysis/[id]
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const id = context.params?.id;
-
-  // If 'id' is missing or not a string, gracefully handle it.
-  // This will prevent 'Invalid URL' at build time
+  
+  // If 'id' is missing or not a string, return notFound => build won't crash
   if (!id || typeof id !== "string") {
-    // Provide empty data or even return notFound to avoid errors
-    return { props: { analysisData: null } };
+    return { notFound: true };
   }
 
-  // Otherwise, fetch from DB
+  // Attempt DB fetch
   const analysisDoc = await fetchAnalysisById(id);
-  // If fetchAnalysisById returns null/undefined, your page can render "No analysis found."
+
+  // If fetch returned null or undefined, also return notFound
+  if (!analysisDoc) {
+    return { notFound: true };
+  }
+
+  // Otherwise, we have a valid doc
   return {
     props: {
-      analysisData: analysisDoc ?? null,
+      analysisData: analysisDoc,
     },
   };
 };
