@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 // because we redirect to /analysis for the final display
 import { EnhancedInput } from "../components/EnhancedInput";
 import { PersonaSelect } from "@/components/PersonaSelect";
-import ThemeToggle from "@/components/ThemeToggle"; // Import ThemeToggle
 
 export default function Home() {
   const router = useRouter();
