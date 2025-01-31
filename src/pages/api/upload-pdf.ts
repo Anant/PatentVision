@@ -17,54 +17,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Parse form data
     const { fields, filePath } = await parseFormData(req);
 
     const persona = fields.persona || "";
     const userQuestion = fields.question || "";
 
+    // Extract PDF text
     const extractedText = await parsePdfFile(filePath);
     if (!extractedText) {
       return res.status(400).json({ error: "Failed to extract text from PDF." });
     }
 
-    // Summaries from AI
+    // Call AI Summaries
     const { summary, imageUrl, audioData, strucresponse } = await callAiSummaries({
       persona,
       userQuestion,
       extractedText,
     });
 
+    // Generate analysis ID (this will be used as doc ID AND audio filename)
+    const analysisId = uuidv4();
+
+    // If we have audio data, upload it to Bunny using analysisId
     let audioUrl = "";
     if (audioData) {
       try {
-        audioUrl = await uploadAudioBase64(audioData);
+        audioUrl = await uploadAudioBase64(audioData, analysisId);
       } catch (err) {
         console.error("Error uploading audio to Bunny:", err);
-        // fallback or handle error
       }
     }
 
-    // Generate a doc ID
-    const analysisId = uuidv4();
-
-    // Prepare the record
+    // Prepare record for Cassandra
     const record = {
       id: analysisId,
-      persona: persona[0],
-      userquestion: userQuestion[0],
+      persona: Array.isArray(persona) ? persona[0] : persona,
+      userquestion: Array.isArray(userQuestion) ? userQuestion[0] : userQuestion,
       extractedtext: extractedText,
       summary,
-      imageurl: imageUrl,
-      audiodata: "audioData",
+      imageurl: imageUrl, // or also upload to Bunny if you want
+      audiodata: audioUrl, // we store the final bunny URL here
       strucresponse: JSON.stringify(strucresponse),
       createdat: new Date().toISOString(),
     };
 
-
-    // Store in Astra 
+    // Store in Astra
     await storeAnalysis(record);
 
-    // Return the new doc ID + partial data if desired
+    // Return data to client
     return res.status(200).json({
       analysisId,
       summary,
