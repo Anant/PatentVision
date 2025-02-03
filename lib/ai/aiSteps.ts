@@ -1,24 +1,25 @@
 // lib/ai/aiSteps.ts
 import OpenAI from "openai";
 
-// Make sure to provide your own keys/config
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.OPENAI_API_KEY!, // or manage via env
 });
 
 interface AiParams {
   persona: string;
   userQuestion?: string;
   extractedText?: string;
-  summary?: string; // used when generating image/audio/structured
+  summary?: string; // used for image/audio/structured steps
 }
 
 /**
  * STEP 1: Summarize
+ * (Prompt from your old "callAiSummaries")
  */
 export async function callAiSummary(params: AiParams): Promise<string> {
   const { persona, userQuestion = "", extractedText = "" } = params;
 
+  // Summarize
   const chatResponse = await openai.chat.completions.create({
     model: "gpt-4o",
     messages: [
@@ -39,60 +40,13 @@ export async function callAiSummary(params: AiParams): Promise<string> {
       },
     ],
   });
+
   return chatResponse.choices[0]?.message?.content || "";
 }
 
 /**
- * STEP 2: Image generation
- */
-export async function callAiImage(params: AiParams): Promise<string> {
-  const { persona, summary = "" } = params;
-
-  let imageUrl = "";
-  try {
-    const imageResponse = await openai.images.generate({
-      model: "dall-e-3", // or "image-alpha" depending on your usage
-      prompt: `Generate an image representing the concept: ${summary} (persona: ${persona}).`,
-      n: 1,
-      size: "1024x1024",
-    });
-    imageUrl = imageResponse.data[0]?.url || "";
-  } catch (err) {
-    console.error("Error generating image:", err);
-  }
-  return imageUrl;
-}
-
-/**
- * STEP 3: Audio generation
- */
-export async function callAiAudio(params: AiParams): Promise<string> {
-  const { persona, summary = "" } = params;
-
-  let audioData = "";
-  try {
-    const audioResponse = await openai.chat.completions.create({
-      model: "gpt-4o-audio-preview",
-      modalities: ["text", "audio"],
-      audio: { voice: "alloy", format: "wav" },
-      messages: [
-        {
-          role: "system",
-          content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective. this is the content ${summary}`,
-        },
-        { role: "user", content: summary },
-      ],
-      store: true,
-    });
-    audioData = audioResponse.choices[0]?.message?.audio?.data || "";
-  } catch (err) {
-    console.error("Error generating audio:", err);
-  }
-  return audioData;
-}
-
-/**
- * STEP 4: Structured data extraction
+ * STEP 2: Structured JSON
+ * (Prompt from old code, but now uses the final summary)
  */
 export async function callAiStructured(params: AiParams): Promise<any> {
   const { persona, summary = "" } = params;
@@ -116,7 +70,7 @@ export async function callAiStructured(params: AiParams): Promise<any> {
       messages: [
         {
           role: "system",
-          content: `You are an expert at structured data extraction. The user is a ${persona}.
+          content: `You are an expert at structured data extraction. The user is a ${persona}. 
                     Convert the summary into the schema.`,
         },
         { role: "user", content: summary },
@@ -134,5 +88,58 @@ export async function callAiStructured(params: AiParams): Promise<any> {
   } catch (err) {
     console.error("Error generating structured response:", err);
   }
+
   return strucresponse;
+}
+
+/**
+ * STEP 3: Image Generation (DALL·E 3)
+ * (Prompt from the old code, referencing the summary)
+ */
+export async function callAiImage(params: AiParams): Promise<string> {
+  const { persona, summary = "" } = params;
+
+  let imageUrl = "";
+  try {
+    const imageResponse = await openai.images.generate({
+      model: "dall-e-3", // or your image model
+      prompt: `Generate an image representing the concept: ${summary} (persona: ${persona}).`,
+      n: 1,
+      size: "1024x1024",
+    });
+    imageUrl = imageResponse.data[0]?.url || "";
+  } catch (err) {
+    console.error("Error generating image:", err);
+  }
+  return imageUrl;
+}
+
+/**
+ * STEP 4: Audio Generation
+ * (Prompt from the old code, referencing the summary)
+ */
+export async function callAiAudio(params: AiParams): Promise<string> {
+  const { persona, summary = "" } = params;
+
+  let audioData = "";
+  try {
+    const audioResponse = await openai.chat.completions.create({
+      model: "gpt-4o-audio-preview",
+      modalities: ["text", "audio"],
+      audio: { voice: "alloy", format: "wav" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective.`,
+        },
+        { role: "user", content: summary },
+      ],
+      store: true,
+    });
+    audioData = audioResponse.choices[0]?.message?.audio?.data || "";
+  } catch (err) {
+    console.error("Error generating audio:", err);
+  }
+
+  return audioData;
 }

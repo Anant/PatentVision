@@ -1,11 +1,15 @@
 // pages/api/upload-pdf.ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
-//@ts-ignore
+// @ts-ignore
 import formidable from "formidable";
 import { parsePdfFile } from "../../../lib/parsePdf";
-import { callAiSummary, callAiStructured, callAiImage, callAiAudio } from "../../../lib/ai/aiSteps"
-// ^ Example: break out your AI calls into smaller steps 
+import { 
+  callAiSummary, 
+  callAiStructured, 
+  callAiImage, 
+  callAiAudio 
+} from "../../../lib/ai/aiSteps"; // Our new steps
 import { storeAnalysis, updateAnalysis } from "../../../lib/db/analysis";
 import { v4 as uuidv4 } from "uuid";
 import { uploadAudioBase64 } from "../../../lib/uploadAudio";
@@ -21,16 +25,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Parse form data
+    // 1. Parse form data
     const { fields, filePath } = await parseFormData(req);
 
     const persona = fields.persona || "";
     const userQuestion = fields.question || "";
 
-    // Generate an analysis ID immediately
+    // 2. Generate an analysis ID immediately
     const analysisId = uuidv4();
 
-    // Store an initial record with placeholders
+    // 3. Store an initial record with placeholders
     const initialRecord = {
       id: analysisId,
       persona: Array.isArray(persona) ? persona[0] : persona,
@@ -41,16 +45,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       audiodata: "",
       strucresponse: "{}",
       createdat: new Date().toISOString(),
-      status: "processing"
+      status: "processing",
     };
 
     await storeAnalysis(initialRecord);
 
-    // Immediately return the analysisId so the client can navigate
+    // 4. Immediately return the analysisId so client can navigate
     res.status(200).json({ analysisId });
 
-    // Then do the heavy lifting in the background
-    processAnalysis({ analysisId, filePath, persona, userQuestion });
+    // 5. Start the background process
+    processAnalysis({
+      analysisId,
+      filePath,
+      persona: initialRecord.persona || "",
+      userQuestion: initialRecord.userquestion || "",
+    });
   } catch (err) {
     console.error("Error in upload-pdf route:", err);
     return res.status(500).json({ error: "Something went wrong." });
@@ -70,78 +79,86 @@ async function processAnalysis({
 }) {
   try {
     //
-    // STEP 1: Extract PDF text
+    // STEP A: Extract PDF text
+    //
     const extractedText = await parsePdfFile(filePath);
     if (!extractedText) {
       await updateAnalysis(analysisId, { extractedtext: "", status: "error" });
       return;
     }
 
-    // Partial update: store extracted text in the "extractedtext" column
+    // partial update
     await updateAnalysis(analysisId, { extractedtext: extractedText });
 
     //
-    // STEP 2: Summarize
+    // STEP B: Summarize
     //
     const summary = await callAiSummary({ persona, userQuestion, extractedText });
-    // Partial update: store summary
+    // partial update
     await updateAnalysis(analysisId, { summary });
 
     //
-    // STEP 3: Structured response
+    // STEP C: Structured JSON
     //
-    const structured = await callAiStructured({ persona, userQuestion, extractedText });
-    // Partial update: store structured response
-    await updateAnalysis(analysisId, { strucresponse: JSON.stringify(structured) });
+    const structured = await callAiStructured({ persona, summary });
+    if (structured) {
+      await updateAnalysis(analysisId, {
+        strucresponse: JSON.stringify(structured),
+      });
+    }
 
     //
-    // STEP 4: Generate/fetch image
+    // STEP D: Image
     //
-    const imageUrl = await callAiImage({ persona, userQuestion, extractedText });
     let stableImageUrl = "";
+    const imageUrl = await callAiImage({ persona, summary });
     if (imageUrl) {
       try {
         stableImageUrl = await uploadImageFromUrl(imageUrl, analysisId);
       } catch (err) {
         console.error("Error uploading image:", err);
-        stableImageUrl = imageUrl; // fallback to original
+        stableImageUrl = imageUrl; // fallback
       }
+      await updateAnalysis(analysisId, { imageurl: stableImageUrl });
     }
-    await updateAnalysis(analysisId, { imageurl: stableImageUrl });
 
     //
-    // STEP 5: Audio data
+    // STEP E: Audio
     //
-    const audioData = await callAiAudio({ persona, userQuestion, extractedText });
-    let audioUrl = "";
+    const audioData = await callAiAudio({ persona, summary });
     if (audioData) {
       try {
-        audioUrl = await uploadAudioBase64(audioData, analysisId);
+        const audioUrl = await uploadAudioBase64(audioData, analysisId);
+        await updateAnalysis(analysisId, { audiodata: audioUrl });
       } catch (err) {
         console.error("Error uploading audio:", err);
       }
     }
-    await updateAnalysis(analysisId, { audiodata: audioUrl });
 
     //
-    // STEP 6: Mark done
+    // STEP F: Mark done
     //
     await updateAnalysis(analysisId, { status: "done" });
-
   } catch (err) {
     console.error("Error in background processing:", err);
     await updateAnalysis(analysisId, { status: "error" });
   }
 }
 
-async function parseFormData(req: NextApiRequest): Promise<{ fields: formidable.Fields; filePath: string }> {
+async function parseFormData(
+  req: NextApiRequest
+): Promise<{ fields: formidable.Fields; filePath: string }> {
   return new Promise((resolve, reject) => {
     const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
     // @ts-ignore
     form.parse(req, (err, fields, files) => {
-      if (err) return reject(err);
+      if (err) {
+        return reject(err);
+      }
       const uploadedFile = files.file;
-      if (!uploadedFile) return reject(new Error("No file uploaded"));
+      if (!uploadedFile) {
+        return reject(new Error("No file uploaded"));
+      }
       const fileObj = Array.isArray(uploadedFile) ? uploadedFile[0] : uploadedFile;
       const filePath = fileObj.filepath;
       resolve({ fields, filePath });
