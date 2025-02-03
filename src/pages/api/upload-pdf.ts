@@ -6,6 +6,7 @@ import { callAiSummaries } from "../../../lib/ai/callAiSummaries";
 import { storeAnalysis } from "../../../lib/db/analysis";
 import { v4 as uuidv4 } from "uuid";
 import { uploadAudioBase64 } from "../../../lib/uploadAudio";
+import { uploadImageFromUrl } from "../../../lib/uploadImage";
 
 export const config = {
   api: { bodyParser: false },
@@ -49,6 +50,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // 2. If AI returned imageUrl, fetch & reupload to Bunny
+    let stableImageUrl = "";
+    if (imageUrl) {
+      try {
+        stableImageUrl = await uploadImageFromUrl(imageUrl, analysisId);
+      } catch (err) {
+        console.error("Error uploading image to Bunny:", err);
+        stableImageUrl = imageUrl; // fallback: store the original
+      }
+    }
+
     // Prepare record for Cassandra
     const record = {
       id: analysisId,
@@ -56,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       userquestion: Array.isArray(userQuestion) ? userQuestion[0] : userQuestion,
       extractedtext: extractedText,
       summary,
-      imageurl: imageUrl, // or also upload to Bunny if you want
+      imageurl: stableImageUrl, // or also upload to Bunny if you want
       audiodata: audioUrl, // we store the final bunny URL here
       strucresponse: JSON.stringify(strucresponse),
       createdat: new Date().toISOString(),
