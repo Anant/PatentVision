@@ -50,21 +50,26 @@ export function AnalysisPanel({
         <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
           <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-gray-100">Patent Visualization</h3>
           {imageUrl ? (
-            <PatentImage imageUrl={imageUrl} />
+            <PatentImage
+              imageUrl={imageUrl}
+              containerClassName="w-full"
+              imageClassName="border border-gray-700 rounded transition-opacity duration-300 w-full object-contain"
+            />
           ) : (
             <div className="aspect-video bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded">
               <span className="text-gray-500 dark:text-gray-300">Patent Image Placeholder</span>
             </div>
           )}
+
         </div>
 
         {/* Video Explanation (placeholder) */}
-        <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
+        {/* <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
           <h3 className="text-md font-semibold mb-2 text-gray-900 dark:text-gray-100">Video Explanation</h3>
           <div className="aspect-video bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded">
             <span className="text-gray-500 dark:text-gray-300">Video Player Placeholder</span>
           </div>
-        </div>
+        </div> */}
 
         {/* Audio Analysis */}
         <div className="p-4 border border-gray-300 dark:border-gray-700 rounded bg-gray-100 dark:bg-gray-800">
