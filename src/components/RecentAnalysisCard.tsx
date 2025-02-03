@@ -11,7 +11,9 @@ export function RecentAnalysisCard({ analysis }: { analysis: any }) {
   if (strucresponse) {
     try {
       const responseObj =
-        typeof strucresponse === "string" ? JSON.parse(strucresponse) : strucresponse;
+        typeof strucresponse === "string"
+          ? JSON.parse(strucresponse)
+          : strucresponse;
       title = responseObj.name || title;
     } catch (err) {
       console.error("Error parsing strucresponse:", err);
@@ -21,7 +23,7 @@ export function RecentAnalysisCard({ analysis }: { analysis: any }) {
   return (
     <Link href={`/analysis/${id}`}>
       <div className="border p-4 rounded hover:shadow-lg transition cursor-pointer">
-        {/* Use PatentImage with hideTitle so that only the image is rendered */}
+        {/* PatentImage will handle its own skeleton loading */}
         <PatentImage imageUrl={imageurl} hideTitle={true} />
         <h3 className="mt-2 text-lg font-bold">{title}</h3>
       </div>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EnhancedInput } from "../components/EnhancedInput";
 import { PersonaSelect } from "@/components/PersonaSelect";
 import { RecentAnalysisCard } from "@/components/RecentAnalysisCard";
+import { RecentAnalysisCardSkeleton } from "@/components/RecentAnalysisCardSkeleton";
 
 export default function Home() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function Home() {
   const [userQuestion, setUserQuestion] = useState("");
   const [selectedPersona, setSelectedPersona] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [recentAnalyses, setRecentAnalyses] = useState<any[]>([]);
+  const [recentAnalyses, setRecentAnalyses] = useState<any[] | null>(null);
 
   // Handle PDF from EnhancedInput
   const handleAddFiles = (files: File[]) => {
@@ -115,9 +116,12 @@ export default function Home() {
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Recent Analyses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentAnalyses.map((analysis) => (
-              <RecentAnalysisCard key={analysis.id} analysis={analysis} />
-            ))}
+            {recentAnalyses
+              ? recentAnalyses.map((analysis) => (
+                  <RecentAnalysisCard key={analysis.id} analysis={analysis} />
+                ))
+              : // Render three skeleton cards while data is loading
+                [1, 2, 3].map((n) => <RecentAnalysisCardSkeleton key={n} />)}
           </div>
         </div>
       </div>
