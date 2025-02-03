@@ -16,21 +16,32 @@ export interface AnalysisDoc {
 const analysisCollection = db.collection<AnalysisDoc>("analysis");
 
 export async function storeAnalysis(record: AnalysisDoc) {
-  // "insertOne" with the columns that match your Cassandra table
   await analysisCollection.insertOne(record);
   console.log(`[storeAnalysis] Stored analysis with docId=${record.id}`);
 }
 
 export async function fetchAnalysisById(id: string) {
   try {
-    // We assume the doc ID is "id"
-    // If you inserted an `_id`, you'd do .findOne({_id: id}). 
-    // But since your table PK is "id", do .findOne({id})
     const doc = await analysisCollection.findOne({ id });
-    // doc might be undefined/null if not found
     return doc || null;
   } catch (err) {
     console.error("fetchAnalysisById error:", err);
     return null;
+  }
+}
+
+// New function to fetch recent analyses (default limit = 5)
+export async function fetchRecentAnalyses(limit: number = 5) {
+  try {
+    // For demonstration, fetch all and sort by createdat.
+    // Note: This assumes createdat is stored in a sortable format (e.g. ISO 8601).
+    const docs = await analysisCollection.find({}).toArray();
+    const sortedDocs = docs.sort((a, b) => {
+      return new Date(b.createdat || "").getTime() - new Date(a.createdat || "").getTime();
+    });
+    return sortedDocs.slice(0, limit);
+  } catch (err) {
+    console.error("fetchRecentAnalyses error:", err);
+    return [];
   }
 }
