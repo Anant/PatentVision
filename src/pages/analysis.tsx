@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+// pages/analysis.tsx
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-
 import { ConversationPanel } from "@/components/Analysis/ConversationPanel";
 import { AnalysisPanel } from "@/components/Analysis/AnalysisPanel";
 import { SuggestedQuestions } from "@/components/Analysis/SuggestedQuestions";
@@ -12,30 +12,35 @@ interface Message {
 
 export default function Analysis() {
   const router = useRouter();
-  const {
-    analysisId,
-    summary = "",
-    imageUrl = "",
-    audioData = "",
-    extractedText = "",
-    persona = "",
-    // We'll parse strucresponse if present
-    strucresponse = "{}",
-  } = router.query;
+  const { analysisId, persona = "" } = router.query;
+  const [analysisData, setAnalysisData] = useState<any>(null);
 
-  // Check if we're running in the browser (window is defined)
+  // Poll for analysis updates every 3 seconds.
+  useEffect(() => {
+    if (!analysisId) return;
+    const intervalId = setInterval(async () => {
+      const res = await fetch(`/api/analysis-status?analysisId=${analysisId}`);
+      const data = await res.json();
+      setAnalysisData(data);
+
+      // If status is "done" or "error", stop polling
+      if (data.status === "done" || data.status === "error") {
+        clearInterval(intervalId);
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [analysisId]);
+
+  // Build shareUrl if analysisId is present.
   const isBrowser = typeof window !== "undefined";
-
-  // Build shareUrl if analysisId is present and we have a window.location
   const shareUrl =
-    isBrowser && analysisId
-      ? `${window.location.origin}/analysis/${analysisId}`
-      : null;
+    isBrowser && analysisId ? `${window.location.origin}/analysis/${analysisId}` : null;
 
   // Clipboard copy logic
   function handleCopy() {
     if (!shareUrl) return;
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
+    if (navigator.clipboard) {
       navigator.clipboard
         .writeText(shareUrl)
         .then(() => alert("Link copied!"))
@@ -48,67 +53,55 @@ export default function Analysis() {
     }
   }
 
-  function fallbackCopy(str: string) {
-    const textArea = document.createElement("textarea");
-    textArea.value = str;
-    textArea.style.position = "fixed";
-    textArea.style.opacity = "0";
-    document.body.appendChild(textArea);
-    textArea.select();
+  function fallbackCopy(text: string) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
     document.execCommand("copy");
-    document.body.removeChild(textArea);
+    document.body.removeChild(textarea);
     alert("Link copied (fallback)!");
   }
 
-  // Convert query params to guaranteed strings
-  const summaryStr = Array.isArray(summary) ? summary[0] : summary;
-  const imageUrlStr = Array.isArray(imageUrl) ? imageUrl[0] : imageUrl;
-  const audioDataStr = Array.isArray(audioData) ? audioData[0] : audioData;
-  const extractedTextStr = Array.isArray(extractedText)
-    ? extractedText[0]
-    : extractedText;
-  const personaStr = Array.isArray(persona) ? persona[0] : persona;
-  const strucresponseStr = Array.isArray(strucresponse)
-    ? strucresponse[0]
-    : strucresponse;
-
-  // Parse the structured response if it exists
-  let parsedStruct: any = {};
+  // If analysisData is not yet loaded, we can use placeholders.
+  const summary = analysisData?.summary || "";
+  const imageUrl = analysisData?.imageurl || "";
+  const audioData = analysisData?.audiodata || "";
+  const extractedText = analysisData?.extractedtext || "";
+  const strucresponse = analysisData?.strucresponse || "{}";
+  let parsedStruct = {};
   try {
-    parsedStruct = JSON.parse(strucresponseStr);
+    parsedStruct = JSON.parse(strucresponse);
   } catch (err) {
-    console.error("Failed to parse structured response JSON", err);
+    console.error("Failed to parse structured response:", err);
   }
 
-  // Hardcoded suggestions
+  // Hardcoded suggested questions
   const suggestedQuestions = [
     "What are the key claims?",
     "How does this compare to existing art?",
     "Any potential licensing opportunities?",
   ];
 
-  // Basic conversation to display in the left column
+  // Basic conversation placeholder
   const conversation: Message[] = [
     {
       role: "user",
-      content: personaStr
-        ? `I am a ${personaStr} persona, and my question was something.`
+      content: persona
+        ? `I am a ${persona} persona, and my question was something.`
         : "User question placeholder",
     },
     {
       role: "assistant",
-      content: summaryStr ? `Here's the summary:` : "Assistant's summary placeholder",
+      content: summary ? `Here's the summary:` : "Assistant's summary placeholder",
     },
   ];
 
-  function askQuestion(question: string) {
-    console.log("User asked a follow-up question:", question);
-    // Potentially do another fetch or update conversation state
-  }
-
   return (
     <div className="flex flex-col h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
-      {/* Top bar with copy link (if shareUrl is defined) */}
+      {/* Top bar with share link */}
       <div className="flex items-center justify-end p-4 border-b border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
         {shareUrl && (
           <button
@@ -121,27 +114,28 @@ export default function Analysis() {
       </div>
 
       <div className="flex-1 grid md:grid-cols-[1fr_2fr] divide-x divide-gray-300 dark:divide-gray-700">
-        {/* Left: conversation area */}
+        {/* Left: Conversation panel */}
         <div className="p-6 overflow-y-auto">
           <ConversationPanel conversation={conversation} />
         </div>
-
-        {/* Right: analysis area */}
+        {/* Right: Analysis panel */}
         <div className="p-4 overflow-auto">
           <AnalysisPanel
-            summary={summaryStr}
-            imageUrl={imageUrlStr}
-            audioData={audioDataStr}
-            extractedText={extractedTextStr}
+            summary={summary}
+            imageUrl={imageUrl}
+            audioData={audioData}
+            extractedText={extractedText}
             parsedStruct={parsedStruct}
           />
         </div>
       </div>
 
-      {/* Bottom area: suggested questions + new input */}
+      {/* Bottom: Suggested questions */}
       <div className="p-4 border-t border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-900">
-        <SuggestedQuestions questions={suggestedQuestions} onQuestionSelect={askQuestion} />
-        {/* If you want an EnhancedInput for follow-up Q's, you can place it here */}
+        <SuggestedQuestions
+          questions={suggestedQuestions}
+          onQuestionSelect={(q) => console.log("User asked:", q)}
+        />
       </div>
     </div>
   );

@@ -43,16 +43,11 @@ export default function Home() {
         return;
       }
 
-      // Redirect to /analysis with returned data
+      // Only analysisId is returned now—navigate immediately.
       router.push({
         pathname: "/analysis",
         query: {
           analysisId: data.analysisId,
-          summary: data.summary || "",
-          imageUrl: data.imageUrl || "",
-          audioData: data.audioData || "",
-          extractedText: data.extractedText || "",
-          strucresponse: JSON.stringify(data.strucresponse || {}),
           persona: selectedPersona,
         },
       });
@@ -64,7 +59,7 @@ export default function Home() {
     }
   };
 
-  // Fetch recent analyses on mount
+  // Fetch recent analyses on mount (for the homepage grid)
   useEffect(() => {
     async function fetchRecent() {
       try {
@@ -81,18 +76,14 @@ export default function Home() {
   return (
     <main className="flex min-h-screen">
       <div className="flex-1 p-8 max-w-7xl mx-auto">
-        {/* Your PDF upload and persona selection UI */}
+        {/* PDF Upload & Persona Selection */}
         <EnhancedInput onAddFiles={handleAddFiles} setQuestion={setUserQuestion} />
         <PersonaSelect selectedPersona={selectedPersona} setSelectedPersona={setSelectedPersona} />
 
         <div className="flex justify-end mt-4">
           <Button
             disabled={!selectedPersona}
-            onClick={() => {
-              console.log("Persona chosen:", selectedPersona);
-              console.log("User typed question:", userQuestion);
-              handleUploadAndProcess();
-            }}
+            onClick={handleUploadAndProcess}
             className={`
               px-6 py-3 rounded-lg transition-all duration-150 ease-in-out
               border 
@@ -112,7 +103,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Recent analyses grid */}
+        {/* Recent Analyses Grid */}
         <div className="mt-8">
           <h2 className="text-xl font-semibold mb-4">Recent Analyses</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -120,7 +111,7 @@ export default function Home() {
               ? recentAnalyses.map((analysis) => (
                   <RecentAnalysisCard key={analysis.id} analysis={analysis} />
                 ))
-              : // Render three skeleton cards while data is loading
+              : // Render skeleton cards while loading
                 [1, 2, 3].map((n) => <RecentAnalysisCardSkeleton key={n} />)}
           </div>
         </div>
