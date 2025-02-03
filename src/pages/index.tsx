@@ -63,7 +63,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchRecent() {
       try {
-        const res = await fetch("/api/recent-analyses?limit=5");
+        const res = await fetch("/api/recent-analyses?limit=6");
         const data = await res.json();
         setRecentAnalyses(data);
       } catch (err) {

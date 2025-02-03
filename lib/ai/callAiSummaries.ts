@@ -63,7 +63,7 @@ export async function callAiSummaries(params: AiSummaryParams) {
       messages: [
         {
           role: "system",
-          content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective.`,
+          content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective. this is the content ${summary}`,
         },
         { role: "user", content: summary },
       ],

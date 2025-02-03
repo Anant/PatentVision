@@ -78,7 +78,7 @@ export async function callAiAudio(params: AiParams): Promise<string> {
       messages: [
         {
           role: "system",
-          content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective.`,
+          content: `You are a helpful AI that produces spoken summaries from a ${persona} perspective. this is the content ${summary}`,
         },
         { role: "user", content: summary },
       ],
