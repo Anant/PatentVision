@@ -1,4 +1,3 @@
-// pages/index.tsx
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
@@ -11,27 +10,41 @@ export default function Home() {
   const router = useRouter();
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [linkText, setLinkText] = useState(""); // <--- track combined link text
   const [userQuestion, setUserQuestion] = useState("");
   const [selectedPersona, setSelectedPersona] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [recentAnalyses, setRecentAnalyses] = useState<any[] | null>(null);
 
-  // Handle PDF from EnhancedInput
+  // 1. Called by EnhancedInput when PDF is added
   const handleAddFiles = (files: File[]) => {
-    if (files.length > 0) setPdfFile(files[0]);
+    if (files.length > 0) {
+      setPdfFile(files[0]);
+    }
   };
 
-  // Submit the PDF, question, persona to the server
+  // 2. Called when user clicks Next
   const handleUploadAndProcess = async () => {
-    if (!pdfFile) {
-      alert("Please select or attach a PDF file first.");
+    // If the user has neither PDF nor link text, block
+    if (!pdfFile && !linkText) {
+      alert("Please attach a PDF or a patent link first.");
       return;
     }
 
     setIsLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", pdfFile);
+
+      // If we have a PDF, append it
+      if (pdfFile) {
+        formData.append("file", pdfFile);
+      }
+
+      // If we have link text from the patent link, append it
+      if (linkText) {
+        formData.append("linkText", linkText);
+      }
+
       formData.append("question", userQuestion);
       formData.append("persona", selectedPersona);
 
@@ -39,7 +52,7 @@ export default function Home() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert(data.error || "Error processing PDF");
+        alert(data.error || "Error processing PDF/Link");
         return;
       }
 
@@ -52,14 +65,14 @@ export default function Home() {
         },
       });
     } catch (err) {
-      console.error("Error uploading/parsing PDF:", err);
-      alert("Error uploading/parsing PDF");
+      console.error("Error uploading/parsing:", err);
+      alert("Error uploading/parsing file/link");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch recent analyses on mount (for the homepage grid)
+  // 3. Fetch recent analyses on mount (for the homepage grid)
   useEffect(() => {
     async function fetchRecent() {
       try {
@@ -76,9 +89,20 @@ export default function Home() {
   return (
     <main className="flex min-h-screen">
       <div className="flex-1 p-8 max-w-7xl mx-auto">
-        {/* PDF Upload & Persona Selection */}
-        <EnhancedInput onAddFiles={handleAddFiles} setQuestion={setUserQuestion} />
-        <PersonaSelect selectedPersona={selectedPersona} setSelectedPersona={setSelectedPersona} />
+        {/* EnhancedInput:
+            - onAddFiles: store PDF in state
+            - setQuestion: store user's question
+            - onLinkTextChange: store combined link text */}
+        <EnhancedInput
+          onAddFiles={handleAddFiles}
+          setQuestion={setUserQuestion}
+          onLinkTextChange={setLinkText}
+        />
+
+        <PersonaSelect 
+          selectedPersona={selectedPersona} 
+          setSelectedPersona={setSelectedPersona} 
+        />
 
         <div className="flex justify-end mt-4">
           <Button
@@ -87,9 +111,11 @@ export default function Home() {
             className={`
               px-6 py-3 rounded-lg transition-all duration-150 ease-in-out
               border 
-              ${selectedPersona
-                ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
-                : "bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed"}
+              ${
+                selectedPersona
+                  ? "bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
+                  : "bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed"
+              }
               dark:border-blue-400 dark:bg-blue-500 dark:text-white dark:hover:bg-blue-600
             `}
           >
@@ -111,8 +137,7 @@ export default function Home() {
               ? recentAnalyses.map((analysis) => (
                   <RecentAnalysisCard key={analysis.id} analysis={analysis} />
                 ))
-              : // Render skeleton cards while loading
-                [1, 2, 3].map((n) => <RecentAnalysisCardSkeleton key={n} />)}
+              : [1, 2, 3].map((n) => <RecentAnalysisCardSkeleton key={n} />)}
           </div>
         </div>
       </div>

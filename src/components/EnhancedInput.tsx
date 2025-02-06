@@ -1,4 +1,3 @@
-// EnhancedInput.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog";
 import { Input } from "./ui/input";
@@ -19,9 +18,11 @@ interface LinkItem {
 export function EnhancedInput({
     onAddFiles,
     setQuestion,
+    onLinkTextChange, // <--- NEW callback from parent
 }: {
     onAddFiles?: (files: File[]) => void;
     setQuestion: (q: string) => void;
+    onLinkTextChange?: (text: string) => void; // <--- NEW
 }) {
     const [files, setFiles] = useState<FileItem[]>([]);
     const [links, setLinks] = useState<LinkItem[]>([]);
@@ -30,7 +31,6 @@ export function EnhancedInput({
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [newLink, setNewLink] = useState("");
 
-    // Hidden PDF file input
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // 1. Whenever message changes, notify parent
@@ -68,7 +68,7 @@ export function EnhancedInput({
         const link = newLink.trim();
         if (!link) return;
 
-        // Optionally, detect google patents pattern
+        // If it's a Google Patents link, fetch the patent text
         let fetchedText = "";
         if (link.includes("patents.google.com")) {
             try {
@@ -78,7 +78,7 @@ export function EnhancedInput({
                     body: JSON.stringify({ url: link }),
                 });
                 const data = await res.json();
-                fetchedText = data.descriptionText || ""; // The extracted patent text
+                fetchedText = data.descriptionText || "";
             } catch (err) {
                 console.error("Failed to extract patent text:", err);
             }
@@ -99,10 +99,23 @@ export function EnhancedInput({
         });
     };
 
+    // 6. Combine all link text into one string
+    const combinedLinkText = links
+        .map((l) => l.text || "")
+        .filter((txt) => txt.length > 0)
+        .join("\n\n");
+
+    // 7. Whenever `links` changes, inform parent
+    useEffect(() => {
+        if (onLinkTextChange) {
+            onLinkTextChange(combinedLinkText);
+        }
+    }, [combinedLinkText, onLinkTextChange]);
+
     return (
         <div className="w-full max-w-3xl mx-auto space-y-4">
             <div className="p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded">
-                {/* If we have any files or links, show them */}
+                {/* Show files and links if we have any */}
                 {(files.length > 0 || links.length > 0) && (
                     <div className="overflow-auto h-24 bg-gray-100 dark:bg-gray-700 p-2 rounded mb-4">
                         <div className="space-y-2">
@@ -126,8 +139,7 @@ export function EnhancedInput({
                                     className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
                                 >
                                     <span className="truncate flex-1">{l.url}</span>
-                                    {/* If we fetched text from a patent link, you could show or store it somewhere */}
-                                    {/* e.g., <pre>{l.text.slice(0,200)}...</pre> for debugging */}
+                                    {/* optionally show partial text in a tooltip or <pre> */}
                                     <button
                                         className="px-2 py-1 text-red-400 hover:text-red-500"
                                         onClick={() => removeLink(idx)}
@@ -171,10 +183,10 @@ export function EnhancedInput({
                                     multiple
                                     accept="application/pdf"
                                     className="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded 
-                             file:border-0 file:text-sm file:font-semibold
-                             file:bg-blue-50 file:text-blue-700
-                             hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-blue-300 
-                             dark:hover:file:bg-blue-600"
+                    file:border-0 file:text-sm file:font-semibold
+                    file:bg-blue-50 file:text-blue-700
+                    hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-blue-300 
+                    dark:hover:file:bg-blue-600"
                                     onChange={(e) => {
                                         handleFileChange(e);
                                         setPdfDialogOpen(false);
@@ -201,13 +213,16 @@ export function EnhancedInput({
                                 </Label>
                                 <Input
                                     id="link-field"
-                                    placeholder="https://example.com"
+                                    placeholder="https://patents.google.com/patent/US6331146B1/en"
                                     value={newLink}
                                     onChange={(e) => setNewLink(e.target.value)}
                                     className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                             text-gray-900 dark:text-gray-100"
+                    text-gray-900 dark:text-gray-100"
                                 />
-                                <Button onClick={addLink} className="bg-green-600 hover:bg-green-700 text-white">
+                                <Button
+                                    onClick={addLink}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                >
                                     Add Link
                                 </Button>
                             </div>
