@@ -18,11 +18,11 @@ interface LinkItem {
 export function EnhancedInput({
     onAddFiles,
     setQuestion,
-    onLinkTextChange, // <--- NEW callback from parent
+    onLinkTextChange, // NEW callback from parent
 }: {
     onAddFiles?: (files: File[]) => void;
     setQuestion: (q: string) => void;
-    onLinkTextChange?: (text: string) => void; // <--- NEW
+    onLinkTextChange?: (text: string) => void;
 }) {
     const [files, setFiles] = useState<FileItem[]>([]);
     const [links, setLinks] = useState<LinkItem[]>([]);
@@ -30,6 +30,7 @@ export function EnhancedInput({
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [newLink, setNewLink] = useState("");
+    const [isAddingLink, setIsAddingLink] = useState(false); // NEW loading state
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,7 +69,7 @@ export function EnhancedInput({
         const link = newLink.trim();
         if (!link) return;
 
-        // If it's a Google Patents link, fetch the patent text
+        setIsAddingLink(true);
         let fetchedText = "";
         if (link.includes("patents.google.com")) {
             try {
@@ -83,11 +84,11 @@ export function EnhancedInput({
                 console.error("Failed to extract patent text:", err);
             }
         }
-
         const newLinkItem: LinkItem = { url: link, text: fetchedText };
         setLinks((prev) => [...prev, newLinkItem]);
         setNewLink("");
         setLinkDialogOpen(false);
+        setIsAddingLink(false);
     };
 
     // 5. Remove a link
@@ -139,7 +140,6 @@ export function EnhancedInput({
                                     className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
                                 >
                                     <span className="truncate flex-1">{l.url}</span>
-                                    {/* optionally show partial text in a tooltip or <pre> */}
                                     <button
                                         className="px-2 py-1 text-red-400 hover:text-red-500"
                                         onClick={() => removeLink(idx)}
@@ -216,14 +216,14 @@ export function EnhancedInput({
                                     placeholder="https://patents.google.com/patent/US6331146B1/en"
                                     value={newLink}
                                     onChange={(e) => setNewLink(e.target.value)}
-                                    className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                    text-gray-900 dark:text-gray-100"
+                                    className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                                 />
                                 <Button
                                     onClick={addLink}
                                     className="bg-green-600 hover:bg-green-700 text-white"
+                                    disabled={isAddingLink}
                                 >
-                                    Add Link
+                                    {isAddingLink ? "Loading..." : "Add Link"}
                                 </Button>
                             </div>
                         </DialogContent>
