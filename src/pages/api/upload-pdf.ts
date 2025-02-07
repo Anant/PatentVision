@@ -3,12 +3,12 @@ import type { NextApiRequest, NextApiResponse } from "next";
 // @ts-ignore
 import formidable from "formidable";
 import { parsePdfFile } from "../../../lib/parsePdf";
-import { 
-  callAiSummary, 
-  callAiStructured, 
-  callAiImage, 
-  callAiAudio 
-} from "../../../lib/ai/aiSteps"; 
+import {
+  callAiSummary,
+  callAiStructured,
+  callAiImage,
+  callAiAudio,
+} from "../../../lib/ai/aiSteps";
 import { storeAnalysis, updateAnalysis } from "../../../lib/db/analysis";
 import { v4 as uuidv4 } from "uuid";
 import { uploadAudioBase64 } from "../../../lib/uploadAudio";
@@ -17,6 +17,12 @@ import { uploadImageFromUrl } from "../../../lib/uploadImage";
 export const config = {
   api: { bodyParser: false },
 };
+
+interface LinkItem {
+  url: string;
+  text?: string;
+  images?: string[];
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -30,13 +36,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const persona = fields.persona || "";
     const userQuestion = fields.question || "";
 
-    // Grab linkText if present
-    const linkText = Array.isArray(fields.linkText) ? fields.linkText[0] : fields.linkText;
+    // 2. Parse any linkData JSON (array of link items)
+    let linkItems: LinkItem[] = [];
+    const linkData = Array.isArray(fields.linkData) ? fields.linkData[0] : fields.linkData;
+    if (linkData) {
+      try {
+        linkItems = JSON.parse(linkData) as LinkItem[];
+      } catch (err) {
+        console.error("Error parsing linkData JSON:", err);
+      }
+    }
 
-    // 2. Create an analysis ID
+    // 3. Create an analysis ID
     const analysisId = uuidv4();
 
-    // 3. Store initial DB record
+    // 4. Store initial DB record
     const initialRecord = {
       id: analysisId,
       persona: Array.isArray(persona) ? persona[0] : persona,
@@ -51,16 +65,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
     await storeAnalysis(initialRecord);
 
-    // Return the analysisId early (client will redirect to /analysis)
+    // Return the analysisId so the client can redirect
     res.status(200).json({ analysisId });
 
-    // 4. Kick off background processing
+    // 5. Kick off background processing
     processAnalysis({
       analysisId,
       filePath,
       persona: initialRecord.persona,
       userQuestion: initialRecord.userquestion,
-      linkText, // optional link-based text
+      linkItems, // Pass the array of link items
     });
   } catch (err) {
     console.error("Error in upload-pdf route:", err);
@@ -68,44 +82,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
+//-----------------------------------------------
+// Background processing
+//-----------------------------------------------
 async function processAnalysis({
   analysisId,
   filePath,
   persona,
   userQuestion,
-  linkText,
+  linkItems,
 }: {
   analysisId: string;
   filePath: string | null;
   persona: string;
   userQuestion: string;
-  linkText?: string;
+  linkItems: LinkItem[];
 }) {
   try {
-    // STEP A: Extract text
-    let extractedText = "";
-    if (linkText) {
-      // We have link-based text from the patent
-      extractedText = linkText;
-    } else if (filePath) {
-      // We have a PDF file
-      extractedText = await parsePdfFile(filePath);
+    // STEP A: Combine text from linkItems + PDF (if any)
+    let combinedText = "";
+    // 1) If we have PDF
+    if (filePath) {
+      const pdfText = await parsePdfFile(filePath);
+      if (pdfText) {
+        combinedText += pdfText;
+      }
+    }
+    // 2) Add link items text
+    const linksText = linkItems.map((l) => l.text || "").join("\n\n");
+    if (linksText) {
+      if (combinedText) combinedText += "\n\n"; // optional spacer
+      combinedText += linksText;
     }
 
-    // If we got nothing at all, mark error
-    if (!extractedText) {
+    if (!combinedText) {
+      // We ended up with no text at all
       await updateAnalysis(analysisId, { extractedtext: "", status: "error" });
       return;
     }
 
-    // partial update
-    await updateAnalysis(analysisId, { extractedtext: extractedText });
+    // partial update: store the combined text in DB
+    await updateAnalysis(analysisId, { extractedtext: combinedText });
 
-    // STEP B: Summarize
-    const summary = await callAiSummary({ persona, userQuestion, extractedText });
+    // STEP B: Gather images from all linkItems
+    // (One big array of URLs)
+    const allImages = linkItems.flatMap((l) => l.images || []);
+
+    // STEP C: Summarize
+    // We'll pass both combinedText + the images to callAiSummary
+    const summary = await callAiSummary({
+      persona,
+      userQuestion,
+      extractedText: combinedText,
+      images: allImages, 
+    });
     await updateAnalysis(analysisId, { summary });
 
-    // STEP C: Structured JSON
+    // STEP D: Structured JSON
     const structured = await callAiStructured({ persona, summary });
     if (structured) {
       await updateAnalysis(analysisId, {
@@ -113,7 +146,8 @@ async function processAnalysis({
       });
     }
 
-    // STEP D: Image
+    // STEP E: Some Image from Stable Diffusion? (callAiImage)
+    // (This is optional, your code might do it differently)
     let stableImageUrl = "";
     const imageUrl = await callAiImage({ persona, summary });
     if (imageUrl) {
@@ -126,7 +160,7 @@ async function processAnalysis({
       await updateAnalysis(analysisId, { imageurl: stableImageUrl });
     }
 
-    // STEP E: Audio
+    // STEP F: Audio 
     const audioData = await callAiAudio({ persona, summary });
     if (audioData) {
       try {
@@ -137,7 +171,7 @@ async function processAnalysis({
       }
     }
 
-    // STEP F: Done
+    // STEP G: Mark done
     await updateAnalysis(analysisId, { status: "done" });
   } catch (err) {
     console.error("Error in background processing:", err);
@@ -145,17 +179,19 @@ async function processAnalysis({
   }
 }
 
+//-----------------------------------------------
+// Parse Form Data
+//-----------------------------------------------
 async function parseFormData(
   req: NextApiRequest
 ): Promise<{ fields: formidable.Fields; filePath: string | null }> {
   return new Promise((resolve, reject) => {
     const form = formidable({ maxFileSize: 10 * 1024 * 1024 });
-    //@ts-ignore
+    // @ts-ignore
     form.parse(req, (err, fields, files) => {
       if (err) {
         return reject(err);
       }
-      // If no file is uploaded at all, we'll have no "filepath"
       let filePath = null;
       const uploadedFile = files.file;
       if (uploadedFile) {

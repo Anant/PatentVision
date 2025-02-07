@@ -12,17 +12,18 @@ interface FileItem {
 
 interface LinkItem {
     url: string;
-    text?: string; // We'll store extracted text here if relevant
+    text?: string;     // The extracted description
+    images?: string[]; // The extracted image URLs
 }
 
 export function EnhancedInput({
     onAddFiles,
     setQuestion,
-    onLinkTextChange, // NEW callback from parent
+    onLinkItemsChange, // callback to parent
 }: {
     onAddFiles?: (files: File[]) => void;
     setQuestion: (q: string) => void;
-    onLinkTextChange?: (text: string) => void;
+    onLinkItemsChange?: (links: LinkItem[]) => void;
 }) {
     const [files, setFiles] = useState<FileItem[]>([]);
     const [links, setLinks] = useState<LinkItem[]>([]);
@@ -30,16 +31,16 @@ export function EnhancedInput({
     const [pdfDialogOpen, setPdfDialogOpen] = useState(false);
     const [linkDialogOpen, setLinkDialogOpen] = useState(false);
     const [newLink, setNewLink] = useState("");
-    const [isAddingLink, setIsAddingLink] = useState(false); // NEW loading state
+    const [isAddingLink, setIsAddingLink] = useState(false); // loading state for link extraction
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // 1. Whenever message changes, notify parent
+    // Whenever message changes, notify parent
     useEffect(() => {
         setQuestion(message);
     }, [message, setQuestion]);
 
-    // 2. Handle newly picked PDF files
+    // For new PDF files
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const newFiles = Array.from(e.target.files).map((file) => ({
@@ -54,7 +55,7 @@ export function EnhancedInput({
         }
     };
 
-    // 3. Remove a file from local list
+    // Remove a file from local list
     const removeFile = (index: number) => {
         setFiles((prev) => {
             const updated = [...prev];
@@ -64,13 +65,16 @@ export function EnhancedInput({
         });
     };
 
-    // 4. Add a link to the local list (and optionally fetch patent text)
+    // Add a link + fetch text/images from /api/extract-patent
     const addLink = async () => {
         const link = newLink.trim();
         if (!link) return;
 
         setIsAddingLink(true);
         let fetchedText = "";
+        let fetchedImages: string[] = [];
+
+        // Simple detection for Google Patents
         if (link.includes("patents.google.com")) {
             try {
                 const res = await fetch("/api/extract-patent", {
@@ -80,18 +84,25 @@ export function EnhancedInput({
                 });
                 const data = await res.json();
                 fetchedText = data.descriptionText || "";
+                fetchedImages = data.images || [];
             } catch (err) {
-                console.error("Failed to extract patent text:", err);
+                console.error("Failed to extract patent data:", err);
             }
         }
-        const newLinkItem: LinkItem = { url: link, text: fetchedText };
+
+        const newLinkItem: LinkItem = {
+            url: link,
+            text: fetchedText,
+            images: fetchedImages,
+        };
+
         setLinks((prev) => [...prev, newLinkItem]);
         setNewLink("");
         setLinkDialogOpen(false);
         setIsAddingLink(false);
     };
 
-    // 5. Remove a link
+    // Remove a link from local list
     const removeLink = (index: number) => {
         setLinks((prev) => {
             const updated = [...prev];
@@ -100,26 +111,21 @@ export function EnhancedInput({
         });
     };
 
-    // 6. Combine all link text into one string
-    const combinedLinkText = links
-        .map((l) => l.text || "")
-        .filter((txt) => txt.length > 0)
-        .join("\n\n");
-
-    // 7. Whenever `links` changes, inform parent
+    // Whenever `links` changes, inform the parent
     useEffect(() => {
-        if (onLinkTextChange) {
-            onLinkTextChange(combinedLinkText);
+        if (onLinkItemsChange) {
+            onLinkItemsChange(links);
         }
-    }, [combinedLinkText, onLinkTextChange]);
+    }, [links, onLinkItemsChange]);
 
     return (
         <div className="w-full max-w-3xl mx-auto space-y-4">
             <div className="p-4 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded">
-                {/* Show files and links if we have any */}
+                {/* Display current PDFs + Patent Links */}
                 {(files.length > 0 || links.length > 0) && (
                     <div className="overflow-auto h-24 bg-gray-100 dark:bg-gray-700 p-2 rounded mb-4">
                         <div className="space-y-2">
+                            {/* Show PDF files */}
                             {files.map((f, idx) => (
                                 <div
                                     key={idx}
@@ -134,32 +140,59 @@ export function EnhancedInput({
                                     </button>
                                 </div>
                             ))}
+
+                            {/* Show Patent Links */}
                             {links.map((l, idx) => (
                                 <div
                                     key={idx}
-                                    className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+                                    className="flex flex-col gap-1 text-sm text-gray-700 dark:text-gray-300"
                                 >
-                                    <span className="truncate flex-1">{l.url}</span>
-                                    <button
-                                        className="px-2 py-1 text-red-400 hover:text-red-500"
-                                        onClick={() => removeLink(idx)}
-                                    >
-                                        X
-                                    </button>
+                                    <div className="flex items-center justify-between">
+                                        <span className="truncate flex-1">{l.url}</span>
+                                        <button
+                                            className="px-2 py-1 text-red-400 hover:text-red-500"
+                                            onClick={() => removeLink(idx)}
+                                        >
+                                            X
+                                        </button>
+                                    </div>
+
+                                    {/* Preview some text */}
+                                    {l.text && (
+                                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-3">
+                                            {l.text.slice(0, 150)}
+                                            {l.text.length > 150 ? "..." : ""}
+                                        </div>
+                                    )}
+
+                                    {/* Preview images */}
+                                    {l.images && l.images.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {l.images.map((src, i2) => (
+                                                <img
+                                                    key={i2}
+                                                    src={src}
+                                                    alt={`Image ${i2}`}
+                                                    className="h-16 border border-gray-200 dark:border-gray-600"
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
 
-                {/* The question input row with PDF and Link buttons inline */}
+                {/* The question input row */}
                 <div className="flex items-center gap-2">
                     <input
                         type="text"
                         placeholder="Do you have any questions?"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        className="flex-1 p-2 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                        className="flex-1 p-2 rounded bg-gray-100 dark:bg-gray-700 border 
+                       border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                     />
 
                     {/* PDF Dialog */}
@@ -182,11 +215,11 @@ export function EnhancedInput({
                                     type="file"
                                     multiple
                                     accept="application/pdf"
-                                    className="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded 
-                    file:border-0 file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-blue-300 
-                    dark:hover:file:bg-blue-600"
+                                    className="block w-full text-sm text-gray-700 dark:text-gray-300 
+                             file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm 
+                             file:font-semibold file:bg-blue-50 file:text-blue-700
+                             hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-blue-300 
+                             dark:hover:file:bg-blue-600"
                                     onChange={(e) => {
                                         handleFileChange(e);
                                         setPdfDialogOpen(false);
@@ -216,7 +249,8 @@ export function EnhancedInput({
                                     placeholder="https://patents.google.com/patent/US6331146B1/en"
                                     value={newLink}
                                     onChange={(e) => setNewLink(e.target.value)}
-                                    className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                                    className="bg-gray-100 dark:bg-gray-700 border border-gray-300 
+                             dark:border-gray-600 text-gray-900 dark:text-gray-100"
                                 />
                                 <Button
                                     onClick={addLink}

@@ -9,7 +9,8 @@ interface AiParams {
     persona: string;
     userQuestion?: string;
     extractedText?: string;
-    summary?: string; // used for image/audio/structured steps
+    summary?: string;
+    images?: string[];
 }
 
 /**
@@ -17,11 +18,32 @@ interface AiParams {
  * (Prompt from your old "callAiSummaries")
  */
 export async function callAiSummary(params: AiParams): Promise<string> {
-    const { persona, userQuestion = "", extractedText = "" } = params;
+    const { persona, userQuestion = "", extractedText = "", images = [] } = params;
 
-    // Summarize
+    // We build a multi-modal user message:
+    //   1) text about the user’s question + patent
+    //   2) each image with type: "image_url"
+    const userMessage = [
+        {
+            type: "text",
+            text: `
+        The user asked: "${userQuestion}"
+        Summarize this patent text from a(n) ${persona} viewpoint:
+  
+        ${extractedText}
+  
+        Make remarks about what persona this is meant for and address the user's question separately.
+      `,
+        },
+        ...images.map((imgUrl) => ({
+            type: "image_url" as const,
+            image_url: { url: imgUrl },
+        })),
+    ];
+
+    // Now we call the Chat Completions API with multi-modal content
     const chatResponse = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o",  // or "gpt-4o-mini" if you want the smaller model
         messages: [
             {
                 role: "system",
@@ -29,18 +51,15 @@ export async function callAiSummary(params: AiParams): Promise<string> {
             },
             {
                 role: "user",
-                content: `
-          The user asked: "${userQuestion}"
-          Summarize this patent text in a concise way, from a(n) ${persona} viewpoint:
-
-          ${extractedText}
-
-          Make remarks about what persona this is meant for and address the user's question separately.
-        `,
+                // For multi-modal: the `content` can be an array
+                // @ts-ignore
+                content: userMessage,
             },
         ],
+        // store: true, // optional if you want the conversation stored
     });
 
+    // Return the text of the assistant's message
     return chatResponse.choices[0]?.message?.content || "";
 }
 

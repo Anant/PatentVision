@@ -1,3 +1,5 @@
+// pages/index.tsx
+
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
@@ -6,32 +8,71 @@ import { PersonaSelect } from "@/components/PersonaSelect";
 import { RecentAnalysisCard } from "@/components/RecentAnalysisCard";
 import { RecentAnalysisCardSkeleton } from "@/components/RecentAnalysisCardSkeleton";
 
+/**
+ * LinkItem interface to match EnhancedInput
+ */
+interface LinkItem {
+  url: string;
+  text?: string;
+  images?: string[];
+}
+
 export default function Home() {
   const router = useRouter();
 
+  // We'll track the single PDF file (if any)
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [linkText, setLinkText] = useState(""); // <--- track combined link text
+
+  // We'll store *all* patent links in an array
+  const [linkItems, setLinkItems] = useState<LinkItem[]>([]);
+
+  // We'll still store a combined link text for convenience, 
+  // but we actually get it from EnhancedInput 
+  const [combinedLinkText, setCombinedLinkText] = useState("");
+
+  // Question, persona, etc.
   const [userQuestion, setUserQuestion] = useState("");
   const [selectedPersona, setSelectedPersona] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
   const [recentAnalyses, setRecentAnalyses] = useState<any[] | null>(null);
 
-  // 1. Called by EnhancedInput when PDF is added
+  //----------------------------------------------------------------
+  // 1. Called by EnhancedInput when a PDF is added
+  //----------------------------------------------------------------
   const handleAddFiles = (files: File[]) => {
     if (files.length > 0) {
       setPdfFile(files[0]);
     }
   };
 
-  // 2. Called when user clicks Next
+  //----------------------------------------------------------------
+  // 2. Collect linkItems from EnhancedInput
+  //----------------------------------------------------------------
+  // Instead of only passing "combined text", we pass the full array of link items.
+  const handleLinkItemsChange = (allLinkItems: LinkItem[]) => {
+    setLinkItems(allLinkItems);
+
+    // If you still want to maintain a "combined text" in state:
+    const combinedText = allLinkItems
+      .map((item) => item.text || "")
+      .filter((txt) => txt.length > 0)
+      .join("\n\n");
+    setCombinedLinkText(combinedText);
+  };
+
+  //----------------------------------------------------------------
+  // 3. Called when user clicks Next => sends data to /api/upload-pdf
+  //----------------------------------------------------------------
   const handleUploadAndProcess = async () => {
-    // If the user has neither PDF nor link text, block
-    if (!pdfFile && !linkText) {
+    // If we have neither PDF nor link text, block
+    if (!pdfFile && linkItems.length === 0) {
       alert("Please attach a PDF or a patent link first.");
       return;
     }
 
     setIsLoading(true);
+
     try {
       const formData = new FormData();
 
@@ -40,15 +81,20 @@ export default function Home() {
         formData.append("file", pdfFile);
       }
 
-      // If we have link text from the patent link, append it
-      if (linkText) {
-        formData.append("linkText", linkText);
+      // We'll pass the entire linkItems array as JSON
+      if (linkItems.length > 0) {
+        const linkData = JSON.stringify(linkItems);
+        formData.append("linkData", linkData);
       }
 
+      // Standard fields
       formData.append("question", userQuestion);
       formData.append("persona", selectedPersona);
 
-      const res = await fetch("/api/upload-pdf", { method: "POST", body: formData });
+      const res = await fetch("/api/upload-pdf", {
+        method: "POST",
+        body: formData,
+      });
       const data = await res.json();
 
       if (!res.ok) {
@@ -56,7 +102,7 @@ export default function Home() {
         return;
       }
 
-      // Only analysisId is returned now—navigate immediately.
+      // Navigate to /analysis once the server has accepted the job
       router.push({
         pathname: "/analysis",
         query: {
@@ -72,7 +118,9 @@ export default function Home() {
     }
   };
 
-  // 3. Fetch recent analyses on mount (for the homepage grid)
+  //----------------------------------------------------------------
+  // 4. Fetch recent analyses on mount
+  //----------------------------------------------------------------
   useEffect(() => {
     async function fetchRecent() {
       try {
@@ -89,19 +137,21 @@ export default function Home() {
   return (
     <main className="flex min-h-screen">
       <div className="flex-1 p-8 max-w-7xl mx-auto">
-        {/* EnhancedInput:
-            - onAddFiles: store PDF in state
-            - setQuestion: store user's question
-            - onLinkTextChange: store combined link text */}
+        {/*
+          EnhancedInput:
+           - onAddFiles => store PDF in state
+           - setQuestion => store user's question
+           - onLinkItemsChange => store link item array in state
+        */}
         <EnhancedInput
           onAddFiles={handleAddFiles}
           setQuestion={setUserQuestion}
-          onLinkTextChange={setLinkText}
+          onLinkItemsChange={handleLinkItemsChange}
         />
 
-        <PersonaSelect 
-          selectedPersona={selectedPersona} 
-          setSelectedPersona={setSelectedPersona} 
+        <PersonaSelect
+          selectedPersona={selectedPersona}
+          setSelectedPersona={setSelectedPersona}
         />
 
         <div className="flex justify-end mt-4">
