@@ -1,10 +1,10 @@
-// lib/uploadImage.ts
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fetch from "node-fetch";
 
 /**
- * Given an externalImageUrl (like from DALL·E), 
+ * Given an externalImageUrl (e.g. from DALL·E),
  * 1) fetch the image data
- * 2) upload it to Bunny Storage using the given analysisId
+ * 2) upload it to DigitalOcean Spaces using the given analysisId
  * 3) return the stable CDN link
  */
 export async function uploadImageFromUrl(
@@ -19,41 +19,47 @@ export async function uploadImageFromUrl(
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // 2. Build Bunny upload URL
-  //    We'll store under /images/<analysisId>.png (or .jpg, depends on your AI)
+  // 2. Guess file extension
   const fileExtension = guessFileExtensionFromUrl(externalImageUrl) || "png";
   const fileName = `${analysisId}.${fileExtension}`;
-  const storageZone = "patentvision"; // storage zone
-  const bunnyKey = "d50f0e32-343e-4cac-b5dc27820d15-5291-48cb";
-  const putUrl = `https://storage.bunnycdn.com/${storageZone}/images/${fileName}`;
+  const Key = `images/${fileName}`;
 
-  // 3. Upload to Bunny
-  const bunnyResp = await fetch(putUrl, {
-    method: "PUT",
-    headers: {
-      AccessKey: bunnyKey,
-      "Content-Type": "application/octet-stream",
+  // 3. Create S3 client for DigitalOcean Spaces
+  const s3 = new S3Client({
+    region: "nyc3",
+    endpoint: "https://nyc3.digitaloceanspaces.com",
+    credentials: {
+      accessKeyId: "DO801ZQ8T3MGYDB2JG9R",
+      secretAccessKey: "fvnWJN8Uo5s3P6ZuNPF9e2pxXSBITnKMMrkrWkHhvwc",
     },
-    body: buffer,
   });
-  if (!bunnyResp.ok) {
-    const msg = await bunnyResp.text();
-    throw new Error(`Bunny image upload failed: ${bunnyResp.status} ${msg}`);
+
+  // 4. Upload image to DO Spaces
+  try {
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: "patent.vision.podcast.cdn",
+        Key,
+        Body: buffer,
+        ContentType: `image/${fileExtension}`,
+        ACL: "public-read",
+      })
+    );
+  } catch (err) {
+    throw new Error(`DigitalOcean Spaces image upload failed: ${err}`);
   }
 
-  // 4. Return the CDN URL
-  return `https://PatentVision.b-cdn.net/images/${fileName}`;
+  // 5. Return the CDN URL
+  return `https://patent.vision.podcast.cdn.nyc3.digitaloceanspaces.com/${Key}`;
 }
 
 /**
- * (Optional) Attempt to guess a file extension from the AI’s image URL.
- * Many DALL·E links end with .png or .jpg. If not, fallback to "png".
+ * Attempt to guess a file extension from the image URL.
+ * If none is found, default to "png".
  */
 function guessFileExtensionFromUrl(url: string): string | null {
-  // naive approach
   const lower = url.toLowerCase();
   if (lower.endsWith(".png")) return "png";
   if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "jpg";
-  // fallback
   return null;
 }

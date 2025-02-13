@@ -1,5 +1,3 @@
-// pages/api/audio-proxy/[filename].ts
-
 import type { NextApiRequest, NextApiResponse } from "next";
 import fetch from "node-fetch";
 
@@ -8,55 +6,47 @@ import fetch from "node-fetch";
  * Example: /api/audio-proxy/abc-123.wav
  *
  * The browser calls this route, and the server fetches
- * the audio from Bunny using the read-only AccessKey.
+ * the audio from DigitalOcean Spaces. We assume it's public.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // 1) Grab filename from URL param
+  // 1) Grab the filename from URL param
   const { filename } = req.query;
   if (!filename || typeof filename !== "string") {
     return res.status(400).send("Missing filename");
   }
 
-  // 2) Build the Bunny storage URL
-  //    e.g. "https://storage.bunnycdn.com/patentvision/audio/filename.wav"
-  const storageZone = "patentvision"; // your storage zone name
-  const bunnyUrl = `https://storage.bunnycdn.com/${storageZone}/audio/${filename}`;
-
-  // 3) Use your read-only AccessKey
-  const bunnyReadKey = "b736f749-af08-47c4-b1ab1bde8287-0486-4392"; // example
+  // 2) Build the DO Spaces URL:
+  //    e.g. "https://<bucket>.<region>.digitaloceanspaces.com/audio-short/filename.wav"
+  //    Adjust if your folder name or bucket is different
+  const doUrl = `https://patent.vision.podcast.cdn.nyc3.digitaloceanspaces.com/audio-short/${filename}`;
 
   try {
-    // 4) Fetch from Bunny using server side code
-    const bunnyResponse = await fetch(bunnyUrl, {
-      headers: {
-        "AccessKey": bunnyReadKey,
-      },
-    });
-
-    if (!bunnyResponse.ok) {
-      // forward error
-      return res.status(bunnyResponse.status).send(`Error: ${bunnyResponse.statusText}`);
+    // 3) Fetch from DO Spaces
+    //    If it's public, no extra headers or auth are needed
+    const doResponse = await fetch(doUrl);
+    if (!doResponse.ok) {
+      return res.status(doResponse.status).send(`Error: ${doResponse.statusText}`);
     }
 
-    // 5) Pipe or buffer the response
-    // Option A: buffer the entire file (simpler, but no partial range support):
-    const arrayBuffer = await bunnyResponse.arrayBuffer();
+    // 4) Buffer the entire file (no partial range support in this example)
+    const arrayBuffer = await doResponse.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 6) Set appropriate headers
-    // e.g. "Content-Type: audio/wav" or "audio/mpeg" if needed
-    res.setHeader("Content-Type", "audio/wav");
+    // 5) Set headers
+    // Adjust Content-Type if you sometimes store MP3, etc.
+    const contentType = doResponse.headers.get("content-type") || "audio/wav";
+    res.setHeader("Content-Type", contentType);
     res.setHeader("Content-Length", buffer.length.toString());
 
-    // 7) Send the file data
+    // 6) Send the file data
     return res.status(200).send(buffer);
 
-    // OR, if you want streaming approach:
-    // res.setHeader("Content-Type", "audio/wav");
-    // bunnyResponse.body.pipe(res);
+    // If you want streaming for large files or partial-range support,
+    // you could pipe doResponse.body directly to res, but that requires
+    // some extra adjustments to handle range requests, etc.
 
   } catch (err) {
-    console.error("Error proxying Bunny audio:", err);
+    console.error("Error proxying DO audio:", err);
     return res.status(500).send("Server error");
   }
 }
