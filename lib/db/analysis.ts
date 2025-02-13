@@ -27,7 +27,7 @@ export async function fetchAnalysisById(id: string) {
     return doc || null;
   } catch (err) {
     console.error("fetchAnalysisById error:", err);
-    return null;
+    return null;``
   }
 }
 
@@ -53,6 +53,15 @@ export async function fetchRecentAnalyses(limit: number = 5) {
     return sortedDocs.slice(0, limit);
   } catch (err) {
     console.error("fetchRecentAnalyses error:", err);
+    return [];
+  }
+}
+
+export async function getAllAnalyses(): Promise<AnalysisDoc[]> {
+  try {
+    return await analysisCollection.find({}).toArray();
+  } catch (err) {
+    console.error("Error fetching all analyses:", err);
     return [];
   }
 }
