@@ -47,6 +47,7 @@ export async function fetchRecentAnalyses(limit: number = 5) {
     // For demonstration, fetch all and sort by createdat.
     // Note: This assumes createdat is stored in a sortable format (e.g. ISO 8601).
     const docs = await analysisCollection.find({}).toArray();
+    //@ts-ignore
     const sortedDocs = docs.sort((a, b) => {
       return new Date(b.createdat || "").getTime() - new Date(a.createdat || "").getTime();
     });

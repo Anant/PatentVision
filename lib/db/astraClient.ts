@@ -1,5 +1,5 @@
 // lib/db/astraClient.ts
-
+//@ts-ignore
 import { DataAPIClient } from "@datastax/astra-db-ts";
 
 /**
